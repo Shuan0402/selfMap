@@ -46,6 +46,7 @@ import {
 
 import MapMoreMenu from "../components/MapMoreMenu";
 import AboutDialog from "../components/About";
+import { renameMap, deleteMap, shareMap, clearMarkers } from "../utils/mapActions";
 
 export default function MapsPage({ user }) {
   const [maps, setMaps] = useState([]);
@@ -119,39 +120,26 @@ export default function MapsPage({ user }) {
 
   // 提供給 MapMoreMenu 的動作
   const handleRenameMap = async (id, newName) => {
-    await updateDoc(doc(db, "maps", id), { title: newName });
+    await renameMap(id, newName);
     setMaps((prev) =>
       prev.map((m) => (m.id === id ? { ...m, title: newName } : m))
     );
   };
 
   const handleDeleteMap = async (id) => {
-    await deleteDoc(doc(db, "maps", id));
+    await deleteMap(id);
     setMaps((prev) => prev.filter((m) => m.id !== id));
   };
 
   const handleShareMap = async (id) => {
-    const url = `${window.location.origin}/map/${id}`;
-    return navigator.clipboard.writeText(url);
+    await shareMap(id);
   };
 
   const handleClearMarkers = async (mapId) => {
-  if (!mapId) throw new Error("mapId 未提供");
-
-  try {
-    const markersRef = collection(db, "maps", mapId, "markers");
-    const snap = await getDocs(markersRef);
-    if (snap.empty) return;
-
-    const CHUNK = 500; // Firestore batch 限制一次最多 500 筆
-    for (let i = 0; i < snap.docs.length; i += CHUNK) {
-      const batch = writeBatch(db);
-      snap.docs.slice(i, i + CHUNK).forEach((docSnap) => batch.delete(docSnap.ref));
-      await batch.commit();
-      }
+    try {
+      await clearMarkers(mapId);
     } catch (err) {
       console.error("handleClearMarkers error:", err);
-      throw err; // 讓 MapMoreMenu catch 並顯示 snackbar
     }
   };
 

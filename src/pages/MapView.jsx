@@ -20,8 +20,6 @@ import {
   getDocs,
   writeBatch
 } from "firebase/firestore";
-import { reverseGeocode } from "../utils/geocode";
-
 import {
   AppBar,
   Toolbar,
@@ -52,6 +50,9 @@ import {
 
 import MapMoreMenu from "../components/MapMoreMenu";
 import AboutDialog from "../components/About";
+
+import { reverseGeocode } from "../utils/geocode";
+import { renameMap, deleteMap, shareMap, clearMarkers } from "../utils/mapActions";
 
 // 修復 Leaflet 默認圖標問題
 const DefaultIcon = L.icon({
@@ -243,39 +244,29 @@ export default function MapView() {
     }
   };
 
-  const handleRename = async (id, newName) => {
-    await updateDoc(doc(db, "maps", id), { title: newName });
+  const handleRenameMap = async (id, newName) => {
+    await renameMap(id, newName);
+    setMapDoc((prev) =>
+      prev && prev.id === id ? { ...prev, title: newName } : prev
+    );
   };
 
-  const handleDelete = async (id) => {
-    const snap = await getDocs(collection(db, "maps", id, "markers"));
-    for (const d of snap.docs) await deleteDoc(d.ref);
-    await deleteDoc(doc(db, "maps", id));
+  const handleDeleteMap = async (id) => {
+    await deleteMap(id);
+    setMapDoc(null);
     navigate("/maps");
   };
 
-  const handleShare = async (id) => {
-    const shareUrl = `${window.location.origin}/maps/${id}`;
-    await navigator.clipboard.writeText(shareUrl);
+
+  const handleShareMap = async (id) => {
+    await shareMap(id);
   };
 
   const handleClearMarkers = async (mapId) => {
-    if (!mapId) throw new Error("mapId 未提供");
-  
     try {
-      const markersRef = collection(db, "maps", mapId, "markers");
-      const snap = await getDocs(markersRef);
-      if (snap.empty) return;
-  
-      const CHUNK = 500;
-      for (let i = 0; i < snap.docs.length; i += CHUNK) {
-        const batch = writeBatch(db);
-        snap.docs.slice(i, i + CHUNK).forEach((docSnap) => batch.delete(docSnap.ref));
-        await batch.commit();
-      }
+      await clearMarkers(mapId);
     } catch (err) {
       console.error("handleClearMarkers error:", err);
-      throw err;
     }
   };
 
@@ -301,9 +292,9 @@ export default function MapView() {
             anchorEl={anchorEl}
             onClose={() => setAnchorEl(null)}
             map={mapDoc}
-            onRename={handleRename}
-            onDelete={handleDelete}
-            onShare={handleShare}
+            onRename={handleRenameMap}
+            onDelete={handleDeleteMap}
+            onShare={handleShareMap}
             onClearMarkers={handleClearMarkers}
           />
           <IconButton onClick={() => signOut(auth)} color="inherit">
