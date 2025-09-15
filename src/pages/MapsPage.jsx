@@ -42,7 +42,8 @@ import {
   Add as AddIcon, 
   Logout as LogoutIcon, 
   Map as MapIcon, 
-  MoreVert as MoreVertIcon 
+  MoreVert as MoreVertIcon,
+  Delete as DeleteIcon
 } from "@mui/icons-material";
 
 export default function MapsPage({ user }) {
@@ -52,10 +53,13 @@ export default function MapsPage({ user }) {
   const [openDialog, setOpenDialog] = useState(false);
   const [error, setError] = useState("");
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
-  const [selectedMap, setSelectedMap] = useState(null);
+  const [selectedMapId, setSelectedMapId] = useState(null);
+  const [selectedMapTitle, setSelectedMapTitle] = useState("");
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [newMapName, setNewMapName] = useState("");
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -79,9 +83,24 @@ export default function MapsPage({ user }) {
         ownerUid: user.uid,
         createdAt: serverTimestamp(),
       });
+      
+      // 手動添加新地圖到本地狀態
+      const newMap = {
+        id: docRef.id,
+        title: title.trim(),
+        ownerUid: user.uid,
+        createdAt: new Date() // 使用本地時間作為暫時值
+      };
+      
+      setMaps(prevMaps => [newMap, ...prevMaps]);
       setTitle("");
       setOpenDialog(false);
-      navigate(`/map/${docRef.id}`);
+      
+      // 顯示成功消息
+      setSnackbar({ open: true, message: "地圖建立成功", severity: "success" });
+      
+      // 不再立即導航到新地圖
+      // navigate(`/map/${docRef.id}`);
     } catch (err) {
       setError("建立失敗: " + err.message);
     } finally {
@@ -103,31 +122,54 @@ export default function MapsPage({ user }) {
 
   // 處理三點選單開啟
   const handleMenuOpen = (event, map) => {
+    event.stopPropagation();
     setMenuAnchorEl(event.currentTarget);
-    setSelectedMap(map);
+    setSelectedMapId(map.id);
+    setSelectedMapTitle(map.title || "");
   };
 
   // 處理三點選單關閉
   const handleMenuClose = () => {
     setMenuAnchorEl(null);
-    setSelectedMap(null);
+  };
+
+  // 開啟刪除確認對話框
+  const handleDeleteClick = () => {
+    setDeleteConfirmOpen(true);
+    handleMenuClose();
   };
 
   // 刪除地圖
   const handleDeleteMap = async () => {
+    if (!selectedMapId) {
+      setSnackbar({ open: true, message: "未選擇地圖", severity: "error" });
+      setDeleteConfirmOpen(false);
+      return;
+    }
+    
+    setDeleting(true);
     try {
-      await deleteDoc(doc(db, "maps", selectedMap.id));
+      await deleteDoc(doc(db, "maps", selectedMapId));
+      // 從本地狀態中移除地圖
+      setMaps(prevMaps => prevMaps.filter(map => map.id !== selectedMapId));
       setSnackbar({ open: true, message: "地圖已刪除", severity: "success" });
+      setDeleteConfirmOpen(false);
     } catch (error) {
       setSnackbar({ open: true, message: "刪除失敗: " + error.message, severity: "error" });
+    } finally {
+      setDeleting(false);
     }
-    handleMenuClose();
   };
 
   // 分享地圖
   const handleShareMap = () => {
-    // 這裡可以實現分享邏輯，例如複製連結到剪貼簿
-    const mapUrl = `${window.location.origin}/map/${selectedMap.id}`;
+    if (!selectedMapId) {
+      setSnackbar({ open: true, message: "未選擇地圖", severity: "error" });
+      handleMenuClose();
+      return;
+    }
+    
+    const mapUrl = `${window.location.origin}/map/${selectedMapId}`;
     navigator.clipboard.writeText(mapUrl)
       .then(() => {
         setSnackbar({ open: true, message: "地圖連結已複製到剪貼簿", severity: "success" });
@@ -140,22 +182,36 @@ export default function MapsPage({ user }) {
 
   // 開啟重新命名對話框
   const handleRenameClick = () => {
-    setNewMapName(selectedMap.title || "");
+    setNewMapName(selectedMapTitle);
     setRenameDialogOpen(true);
     handleMenuClose();
   };
 
   // 重新命名地圖
   const handleRenameMap = async () => {
+    if (!selectedMapId) {
+      setSnackbar({ open: true, message: "未選擇地圖", severity: "error" });
+      setRenameDialogOpen(false);
+      return;
+    }
+    
     if (!newMapName.trim()) {
       setSnackbar({ open: true, message: "請輸入有效的地圖名稱", severity: "error" });
       return;
     }
 
     try {
-      await updateDoc(doc(db, "maps", selectedMap.id), {
+      await updateDoc(doc(db, "maps", selectedMapId), {
         title: newMapName.trim()
       });
+      
+      // 更新本地狀態中的地圖名稱
+      setMaps(prevMaps => 
+        prevMaps.map(map => 
+          map.id === selectedMapId ? { ...map, title: newMapName.trim() } : map
+        )
+      );
+      
       setSnackbar({ open: true, message: "地圖名稱已更新", severity: "success" });
       setRenameDialogOpen(false);
     } catch (error) {
@@ -219,7 +275,7 @@ export default function MapsPage({ user }) {
                   <ListItemButton component={Link} to={`/map/${map.id}`}>
                     <ListItemText
                       primary={map.title || "(未命名地圖)"}
-                      secondary={`創建時間: ${map.createdAt?.toDate().toLocaleString() || "未知"}`}
+                      secondary={`創建時間: ${map.createdAt?.toDate ? map.createdAt.toDate().toLocaleString() : new Date(map.createdAt).toLocaleString() || "未知"}`}
                     />
                   </ListItemButton>
                 </ListItem>
@@ -280,7 +336,7 @@ export default function MapsPage({ user }) {
       >
         <MenuItem onClick={handleRenameClick}>重新命名地圖</MenuItem>
         <MenuItem onClick={handleShareMap}>分享地圖</MenuItem>
-        <MenuItem onClick={handleDeleteMap}>刪除地圖</MenuItem>
+        <MenuItem onClick={handleDeleteClick}>刪除地圖</MenuItem>
       </Menu>
 
       {/* 重新命名對話框 */}
@@ -313,6 +369,35 @@ export default function MapsPage({ user }) {
             variant="contained"
           >
             確認
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 刪除確認對話框 */}
+      <Dialog open={deleteConfirmOpen} onClose={() => !deleting && setDeleteConfirmOpen(false)}>
+        <DialogTitle>刪除地圖</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            確定要刪除地圖 "{selectedMapTitle || '未命名地圖'}" 嗎？
+          </Typography>
+          <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+            此操作將永久刪除此地圖及其所有標記，無法復原。
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setDeleteConfirmOpen(false)} 
+            disabled={deleting}
+          >
+            取消
+          </Button>
+          <Button 
+            onClick={handleDeleteMap} 
+            color="error" 
+            disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={16} /> : <DeleteIcon />}
+          >
+            {deleting ? "刪除中..." : "刪除"}
           </Button>
         </DialogActions>
       </Dialog>
