@@ -341,45 +341,6 @@ export default function MapView() {
           {markers.map((m) => (
             <Marker key={m.id} position={[m.lat, m.lng]}>
               <Popup>
-                {/* <Card sx={{ maxWidth: 300 }}>
-                  {m.photoBase64 && (
-                    <CardMedia
-                      component="img"
-                      height="140"
-                      image={m.photoBase64}
-                      alt="地點照片"
-                    />
-                  )}
-                  <CardContent>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      {m.address}
-                    </Typography>
-                    {m.createdAt?.toDate && (
-                      <Chip
-                        icon={<LocationOnIcon />}
-                        label={m.createdAt.toDate().toLocaleString()}
-                        size="small"
-                        variant="outlined"
-                        sx={{ mt: 1 }}
-                      />
-                    )}
-                  </CardContent>
-                  <CardActions>
-                    <IconButton 
-                      aria-label="刪除地標"
-                      onClick={() => handleDeleteMarker(m.id)}
-                      disabled={deletingMarkerId === m.id}
-                      size="small"
-                      color="error"
-                    >
-                      {deletingMarkerId === m.id ? (
-                        <CircularProgress size={16} />
-                      ) : (
-                        <DeleteIcon />
-                      )}
-                    </IconButton>
-                  </CardActions>
-                </Card> */}
                 <Card sx={{ maxWidth: 300 }}>
                   {m.photoBase64 && (
                     <CardMedia
@@ -403,16 +364,15 @@ export default function MapView() {
                       <ContentCopyIcon fontSize="small" />
                     </IconButton>
                   </CardContent>
-                  {m.createdAt?.toDate && (
-                    <Chip
-                      icon={<LocationOnIcon />}
-                      label={m.createdAt.toDate().toLocaleString()}
-                      size="small"
-                      variant="outlined"
-                      sx={{ mt: 1, mx: 1 }}
-                    />
-                  )}
-                  <CardActions>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 1, pb: 1 }}>
+                    {m.createdAt?.toDate && (
+                      <Chip
+                        icon={<LocationOnIcon />}
+                        label={m.createdAt.toDate().toLocaleString()}
+                        size="small"
+                        variant="outlined"
+                      />
+                    )}
                     <IconButton 
                       aria-label="刪除地標"
                       onClick={() => handleDeleteMarker(m.id)}
@@ -426,7 +386,8 @@ export default function MapView() {
                         <DeleteIcon />
                       )}
                     </IconButton>
-                  </CardActions>
+                  </Box>
+
                 </Card>
 
               </Popup>
