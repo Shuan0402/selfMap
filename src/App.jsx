@@ -8,7 +8,6 @@ Mobile Map Starter (Base64 version)
 */
 
 import React, { useEffect, useState, useRef } from "react";
-import { createRoot } from "react-dom/client";
 import {
   BrowserRouter,
   Routes,
@@ -64,15 +63,14 @@ const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
 
-// ------------------ Helper: reverse geocode
+// ------------------ Helper: reverse geocode (直接打 Nominatim)
 async function reverseGeocode(lat, lng) {
   try {
-    const url = `/nominatim/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.error("reverseGeocode failed", res.status, res.statusText);
-      return "";
-    }
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+    const res = await fetch(url, {
+      headers: { "Accept": "application/json" },
+    });
+    if (!res.ok) return "";
     const data = await res.json();
     return data.display_name || "";
   } catch (e) {
@@ -80,7 +78,6 @@ async function reverseGeocode(lat, lng) {
     return "";
   }
 }
-
 
 // ------------------ Auth Page
 function AuthPage() {
@@ -256,16 +253,15 @@ function MapView({ user }) {
       // 2. 取得地點名稱
       const addr = await reverseGeocode(pendingCoords.lat, pendingCoords.lng);
 
-      // 3. 存入 Firestore markers collection
+      // 3. 存入 Firestore
       await addDoc(collection(db, "maps", mapId, "markers"), {
         lat: pendingCoords.lat,
         lng: pendingCoords.lng,
-        photoBase64: base64Data, // <-- 這裡
+        photoBase64: base64Data,
         address: addr,
         createdAt: serverTimestamp(),
       });
 
-      // 4. 清空狀態
       setPendingCoords(null);
       e.target.value = null;
     } catch (err) {
@@ -276,8 +272,10 @@ function MapView({ user }) {
     }
   }
 
-
-  const center = markers.length > 0 ? [markers[markers.length - 1].lat, markers[markers.length - 1].lng] : [25.0330, 121.5654];
+  const center =
+    markers.length > 0
+      ? [markers[markers.length - 1].lat, markers[markers.length - 1].lng]
+      : [25.0330, 121.5654];
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -334,7 +332,7 @@ function AppRoot() {
   if (initializing) return <div style={{ padding: 20 }}>載入中…</div>;
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route path="/" element={user ? <MapsPage user={user} /> : <AuthPage />} />
         <Route path="/login" element={<AuthPage />} />
@@ -348,7 +346,3 @@ function AppRoot() {
 export default function MobileMapApp() {
   return <AppRoot />;
 }
-
-// Optional: for src/main.jsx
-// const root = createRoot(document.getElementById('root'));
-// root.render(<MobileMapApp />);
