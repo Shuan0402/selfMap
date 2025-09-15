@@ -23,7 +23,7 @@ export default function App() {
   if (initializing) return <Loading />;
 
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
+    <BrowserRouter basename="/selfMap">
       <Routes>
         <Route path="/" element={user ? <MapsPage user={user} /> : <AuthPage />} />
         <Route path="/login" element={<AuthPage />} />

@@ -13,6 +13,8 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  getDocs, 
+  writeBatch,
 } from "firebase/firestore";
 import {
   Container,
@@ -130,6 +132,26 @@ export default function MapsPage({ user }) {
   const handleShareMap = async (id) => {
     const url = `${window.location.origin}/map/${id}`;
     return navigator.clipboard.writeText(url);
+  };
+
+  const handleClearMarkers = async (mapId) => {
+  if (!mapId) throw new Error("mapId 未提供");
+
+  try {
+    const markersRef = collection(db, "maps", mapId, "markers");
+    const snap = await getDocs(markersRef);
+    if (snap.empty) return;
+
+    const CHUNK = 500; // Firestore batch 限制一次最多 500 筆
+    for (let i = 0; i < snap.docs.length; i += CHUNK) {
+      const batch = writeBatch(db);
+      snap.docs.slice(i, i + CHUNK).forEach((docSnap) => batch.delete(docSnap.ref));
+      await batch.commit();
+      }
+    } catch (err) {
+      console.error("handleClearMarkers error:", err);
+      throw err; // 讓 MapMoreMenu catch 並顯示 snackbar
+    }
   };
 
   return (
@@ -258,6 +280,7 @@ export default function MapsPage({ user }) {
           onRename={handleRenameMap}
           onDelete={handleDeleteMap}
           onShare={handleShareMap}
+          onClearMarkers={handleClearMarkers}
         />
       )}
     </Box>

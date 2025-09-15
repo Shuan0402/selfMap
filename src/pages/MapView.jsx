@@ -1,7 +1,7 @@
 // src/pages/MapView.jsx
 import { useEffect, useState, useRef } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -62,6 +62,31 @@ const DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
+function LocateControl({ onLocationFound }) {
+  const map = useMap();
+
+  const handleLocate = () => {
+    if (!navigator.geolocation) {
+      alert("此裝置不支援 GPS");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        map.setView([latitude, longitude], 15);
+        onLocationFound && onLocationFound({ lat: latitude, lng: longitude });
+      },
+      (err) => {
+        alert("取得位置失敗：" + err.message);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  return null; // 這個組件不渲染任何內容
+}
+
 export default function MapView() {
   const { mapId } = useParams();
   const navigate = useNavigate();
@@ -73,6 +98,12 @@ export default function MapView() {
   const [openDialog, setOpenDialog] = useState(false);
   const [deletingMarkerId, setDeletingMarkerId] = useState(null);
   const fileInputRef = useRef();
+  const [userLocation, setUserLocation] = useState(null);
+
+  // 處理定位成功後的邏輯
+  const handleLocationFound = (coords) => {
+    setUserLocation(coords);
+  };
 
   // 控制更多選單
   const [anchorEl, setAnchorEl] = useState(null);
@@ -191,6 +222,26 @@ export default function MapView() {
     await navigator.clipboard.writeText(shareUrl);
   };
 
+  const handleClearMarkers = async (mapId) => {
+    if (!mapId) throw new Error("mapId 未提供");
+  
+    try {
+      const markersRef = collection(db, "maps", mapId, "markers");
+      const snap = await getDocs(markersRef);
+      if (snap.empty) return;
+  
+      const CHUNK = 500; // Firestore batch 限制一次最多 500 筆
+      for (let i = 0; i < snap.docs.length; i += CHUNK) {
+        const batch = writeBatch(db);
+        snap.docs.slice(i, i + CHUNK).forEach((docSnap) => batch.delete(docSnap.ref));
+        await batch.commit();
+        }
+      } catch (err) {
+        console.error("handleClearMarkers error:", err);
+        throw err; // 讓 MapMoreMenu catch 並顯示 snackbar
+      }
+    };
+
   const center = markers.length
     ? [markers[markers.length - 1].lat, markers[markers.length - 1].lng]
     : [25.033, 121.5654];
@@ -216,6 +267,7 @@ export default function MapView() {
             onRename={handleRename}
             onDelete={handleDelete}
             onShare={handleShare}
+            onClearMarkers={handleClearMarkers}
           />
           <IconButton onClick={() => signOut(auth)} color="inherit">
             <ExitToAppIcon />
@@ -233,6 +285,15 @@ export default function MapView() {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution="&copy; OpenStreetMap contributors"
           />
+          {/* 新增定位控制 */}
+          <LocateControl onLocationFound={handleLocationFound} />
+          
+          {/* 顯示使用者位置的標記 */}
+          {userLocation && (
+            <Marker position={[userLocation.lat, userLocation.lng]}>
+              <Popup>您的位置</Popup>
+            </Marker>
+          )}
           {markers.map((m) => (
             <Marker key={m.id} position={[m.lat, m.lng]}>
               <Popup>
@@ -279,6 +340,35 @@ export default function MapView() {
             </Marker>
           ))}
         </MapContainer>
+
+        {/* 新增定位按鈕 */}
+        <Fab
+          color="secondary"
+          aria-label="定位"
+          onClick={() => {
+            if (!navigator.geolocation) {
+              alert("此裝置不支援 GPS");
+              return;
+            }
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                const { latitude, longitude } = pos.coords;
+                setUserLocation({ lat: latitude, lng: longitude });
+              },
+              (err) => {
+                alert("取得位置失敗：" + err.message);
+              }
+            );
+          }}
+          sx={{
+            position: "absolute",
+            bottom: 96, // 放在新增地標按鈕上方
+            right: 16,
+            zIndex: 1000,
+          }}
+        >
+          <LocationOnIcon />
+        </Fab>
 
         <Fab
           color="primary"

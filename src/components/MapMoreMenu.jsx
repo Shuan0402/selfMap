@@ -14,7 +14,7 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import { Delete as DeleteIcon } from "@mui/icons-material";
+import { Delete as DeleteIcon, CleaningServices as CleaningIcon } from "@mui/icons-material";
 
 export default function MapMoreMenu({
   anchorEl,
@@ -23,11 +23,14 @@ export default function MapMoreMenu({
   onRename,
   onDelete,
   onShare,
+  onClearMarkers,
 }) {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [newMapName, setNewMapName] = useState(map?.title || "");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [clearMarkersConfirmOpen, setClearMarkersConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -44,6 +47,10 @@ export default function MapMoreMenu({
   const handleRenameConfirm = async () => {
     if (!newMapName.trim()) {
       setSnackbar({ open: true, message: "請輸入有效名稱", severity: "error" });
+      return;
+    }
+    if (!map?.id || !onRename) {
+      setSnackbar({ open: true, message: "操作失敗：資料不完整", severity: "error" });
       return;
     }
     try {
@@ -86,12 +93,37 @@ export default function MapMoreMenu({
     }
   };
 
+  // --- 清空所有標記 ---
+  const handleClearMarkersClick = () => {
+    setClearMarkersConfirmOpen(true);
+    onClose();
+  };
+
+  const handleClearMarkersConfirm = async () => {
+    if (!onClearMarkers) {
+      setSnackbar({ open: true, message: "清空功能未提供", severity: "error" });
+      return;
+    }
+    setClearing(true);
+    try {
+      await onClearMarkers(map.id);
+      setSnackbar({ open: true, message: "已清空所有地標", severity: "success" });
+      setClearMarkersConfirmOpen(false);
+    } catch (err) {
+      setSnackbar({ open: true, message: "清空失敗: " + err.message, severity: "error" });
+    } finally {
+      setClearing(false);
+    }
+  };
+
+
   return (
     <>
       {/* 功能選單 */}
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={onClose}>
         <MenuItem onClick={handleRenameClick}>重新命名</MenuItem>
         <MenuItem onClick={handleShareClick}>分享</MenuItem>
+        <MenuItem onClick={handleClearMarkersClick}>清空地標</MenuItem>
         <MenuItem onClick={handleDeleteClick}>刪除</MenuItem>
       </Menu>
 
@@ -118,6 +150,28 @@ export default function MapMoreMenu({
           <Button onClick={() => setRenameDialogOpen(false)}>取消</Button>
           <Button onClick={handleRenameConfirm} variant="contained">
             確認
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 清空地標確認對話框 */}
+      <Dialog open={clearMarkersConfirmOpen} onClose={() => !clearing && setClearMarkersConfirmOpen(false)}>
+        <DialogTitle>清空地標</DialogTitle>
+        <DialogContent>
+          <Typography>確定要清空「{map?.title || "未命名地圖"}」中的所有地標嗎？</Typography>
+          <Typography variant="body2" color="error">此操作無法復原。</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setClearMarkersConfirmOpen(false)} disabled={clearing}>
+            取消
+          </Button>
+          <Button
+            onClick={handleClearMarkersConfirm}
+            color="warning"
+            startIcon={clearing ? <CircularProgress size={16} /> : <CleaningIcon />}
+            disabled={clearing}
+          >
+            {clearing ? "清空中..." : "清空"}
           </Button>
         </DialogActions>
       </Dialog>
