@@ -2,6 +2,9 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -15,10 +18,7 @@ import {
   query,
   orderBy,
   serverTimestamp,
-  updateDoc,
   deleteDoc,
-  getDocs,
-  writeBatch
 } from "firebase/firestore";
 import {
   AppBar,
@@ -65,31 +65,6 @@ const DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// 將地圖視角移到使用者位置
-function LocateControl({ onLocationFound }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        // 初次飛到使用者位置
-        map.flyTo([latitude, longitude], 15);
-        onLocationFound && onLocationFound({ lat: latitude, lng: longitude });
-      },
-      (err) => {
-        console.warn("取得位置失敗：" + err.message);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }, [map, onLocationFound]);
-
-  return null;
-}
-
-
 export default function MapView() {
   const { mapId } = useParams();
   const navigate = useNavigate();
@@ -103,12 +78,14 @@ export default function MapView() {
   const [deletingMarkerId, setDeletingMarkerId] = useState(null);
   const fileInputRef = useRef();
   const [userLocation, setUserLocation] = useState(null);
-  const [photoDialogOpen, setPhotoDialogOpen] = useState(false); // 選擇拍照或上傳的彈窗
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
+  const [enlargedImg, setEnlargedImg] = useState(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
-
-  const handleLocationFound = (coords) => {
-    setUserLocation(coords); // 可用於其他功能，但不放 Marker
-  };
   
   const handleLocateClick = () => {
     if (!navigator.geolocation) {
@@ -202,12 +179,7 @@ export default function MapView() {
     setUploading(true);
 
     try {
-      const base64Data = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      const base64Data = await compressAndConvertToBase64(file);
 
       const addr = await reverseGeocode(
         pendingCoords.lat,
@@ -274,6 +246,52 @@ export default function MapView() {
     ? [markers[markers.length - 1].lat, markers[markers.length - 1].lng]
     : [25.033, 121.5654];
 
+    async function compressAndConvertToBase64(file, maxWidth = 1024, maxHeight = 1024, quality = 0.7) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = e => (img.src = e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width = width * ratio;
+            height = height * ratio;
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          const base64 = canvas.toDataURL("image/jpeg", quality); // 可調整 quality 壓縮比例
+          resolve(base64);
+        };
+
+        img.onerror = reject;
+      });
+    }
+
+    const handleCopyAddress = async (address) => {
+      try {
+        await navigator.clipboard.writeText(address);
+        setSnackbar({
+          open: true,
+          message: "地址已複製！",
+          severity: "success",
+        });
+      } catch (err) {
+        setSnackbar({
+          open: true,
+          message: "複製失敗：" + err.message,
+          severity: "error",
+        });
+      }
+    };
+
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <AppBar position="static" color="default" elevation={1}>
@@ -323,7 +341,7 @@ export default function MapView() {
           {markers.map((m) => (
             <Marker key={m.id} position={[m.lat, m.lng]}>
               <Popup>
-                <Card sx={{ maxWidth: 300 }}>
+                {/* <Card sx={{ maxWidth: 300 }}>
                   {m.photoBase64 && (
                     <CardMedia
                       component="img"
@@ -361,7 +379,56 @@ export default function MapView() {
                       )}
                     </IconButton>
                   </CardActions>
+                </Card> */}
+                <Card sx={{ maxWidth: 300 }}>
+                  {m.photoBase64 && (
+                    <CardMedia
+                      component="img"
+                      height="140"
+                      image={m.photoBase64}
+                      alt="地點照片"
+                      sx={{ cursor: "pointer" }}
+                      onClick={() => setEnlargedImg(m.photoBase64)} // 點擊放大
+                    />
+                  )}
+                  <CardContent sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+                      {m.address}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleCopyAddress(m.address)}
+                      aria-label="複製地址"
+                    >
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  </CardContent>
+                  {m.createdAt?.toDate && (
+                    <Chip
+                      icon={<LocationOnIcon />}
+                      label={m.createdAt.toDate().toLocaleString()}
+                      size="small"
+                      variant="outlined"
+                      sx={{ mt: 1, mx: 1 }}
+                    />
+                  )}
+                  <CardActions>
+                    <IconButton 
+                      aria-label="刪除地標"
+                      onClick={() => handleDeleteMarker(m.id)}
+                      disabled={deletingMarkerId === m.id}
+                      size="small"
+                      color="error"
+                    >
+                      {deletingMarkerId === m.id ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        <DeleteIcon />
+                      )}
+                    </IconButton>
+                  </CardActions>
                 </Card>
+
               </Popup>
             </Marker>
           ))}
@@ -412,27 +479,19 @@ export default function MapView() {
         onChange={handleFileSelected}
       />
 
-      {/* <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>獲取位置中</DialogTitle>
-        <DialogContent
-          sx={{ display: "flex", alignItems: "center", flexDirection: "column" }}
-        >
-          <CircularProgress sx={{ mb: 2 }} />
-          <Typography variant="body2">正在獲取您的位置信息...</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>取消</Button>
-        </DialogActions>
-      </Dialog> */}
-
       <Dialog open={photoDialogOpen} onClose={() => setPhotoDialogOpen(false)}>
         <DialogTitle>新增地標照片</DialogTitle>
         <DialogContent>
           <Typography variant="body2" gutterBottom>
             請選擇新增照片方式：
           </Typography>
-          <Box sx={{ display: "flex", justifyContent: "space-around", mt: 2 }}>
-            <Button variant="contained" component="label" color="primary">
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, mt: 2 }}>
+            <Button 
+              variant="contained" 
+              component="label" 
+              color="primary"
+              fullWidth
+            >
               拍照
               <input
                 type="file"
@@ -446,7 +505,11 @@ export default function MapView() {
               />
             </Button>
 
-            <Button variant="outlined" component="label">
+            <Button 
+              variant="outlined" 
+              component="label" 
+              fullWidth
+            >
               上傳照片
               <input
                 type="file"
@@ -459,11 +522,34 @@ export default function MapView() {
               />
             </Button>
           </Box>
+
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPhotoDialogOpen(false)}>取消</Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog open={!!enlargedImg} onClose={() => setEnlargedImg(null)} maxWidth="md">
+        <img src={enlargedImg} alt="放大圖片" style={{ width: "100%", height: "auto" }} />
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={2000}  // 2 秒自動消失
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <MuiAlert
+          elevation={6}
+          variant="filled"
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
+
     </Box>
   );
 }
