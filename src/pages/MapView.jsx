@@ -17,7 +17,8 @@ import {
   serverTimestamp,
   updateDoc,
   deleteDoc,
-  getDocs
+  getDocs,
+  writeBatch
 } from "firebase/firestore";
 import { reverseGeocode } from "../utils/geocode";
 
@@ -62,34 +63,35 @@ const DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
+// 將地圖視角移到使用者位置
 function LocateControl({ onLocationFound }) {
   const map = useMap();
 
-  const handleLocate = () => {
-    if (!navigator.geolocation) {
-      alert("此裝置不支援 GPS");
-      return;
-    }
+  useEffect(() => {
+    if (!navigator.geolocation) return;
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        map.setView([latitude, longitude], 15);
+        // 初次飛到使用者位置
+        map.flyTo([latitude, longitude], 15);
         onLocationFound && onLocationFound({ lat: latitude, lng: longitude });
       },
       (err) => {
-        alert("取得位置失敗：" + err.message);
+        console.warn("取得位置失敗：" + err.message);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  };
+  }, [map, onLocationFound]);
 
-  return null; // 這個組件不渲染任何內容
+  return null;
 }
+
 
 export default function MapView() {
   const { mapId } = useParams();
   const navigate = useNavigate();
+  const mapRef = useRef();
 
   const [mapDoc, setMapDoc] = useState(null);
   const [markers, setMarkers] = useState([]);
@@ -100,12 +102,47 @@ export default function MapView() {
   const fileInputRef = useRef();
   const [userLocation, setUserLocation] = useState(null);
 
-  // 處理定位成功後的邏輯
   const handleLocationFound = (coords) => {
-    setUserLocation(coords);
+    setUserLocation(coords); // 可用於其他功能，但不放 Marker
+  };
+  
+  const handleLocateClick = () => {
+    if (!navigator.geolocation) {
+      alert("此裝置不支援 GPS");
+      return;
+    }
+
+    setOpenDialog(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        
+        // 使用地圖實例飛轉到用戶位置
+        if (mapRef.current) {
+          mapRef.current.flyTo([latitude, longitude], 15);
+        }
+        
+        setOpenDialog(false);
+      },
+      (err) => {
+        setOpenDialog(false);
+        alert("取得位置失敗：" + err.message);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
-  // 控制更多選單
+  // 添加組件來獲取地圖實例
+  function MapInstance() {
+    const map = useMap();
+    useEffect(() => {
+      mapRef.current = map;
+    }, [map]);
+    return null;
+  }
+
   const [anchorEl, setAnchorEl] = useState(null);
 
   useEffect(() => {
@@ -188,7 +225,6 @@ export default function MapView() {
     }
   }
 
-  // 刪除地標功能
   const handleDeleteMarker = async (markerId) => {
     if (!window.confirm("確定要刪除此地標嗎？")) return;
     
@@ -202,17 +238,13 @@ export default function MapView() {
     }
   };
 
-  // --- MapMoreMenu 的功能 ---
   const handleRename = async (id, newName) => {
     await updateDoc(doc(db, "maps", id), { title: newName });
   };
 
   const handleDelete = async (id) => {
-    // 刪除地圖下所有標記
     const snap = await getDocs(collection(db, "maps", id, "markers"));
-    for (const d of snap.docs) {
-      await deleteDoc(d.ref);
-    }
+    for (const d of snap.docs) await deleteDoc(d.ref);
     await deleteDoc(doc(db, "maps", id));
     navigate("/maps");
   };
@@ -230,17 +262,17 @@ export default function MapView() {
       const snap = await getDocs(markersRef);
       if (snap.empty) return;
   
-      const CHUNK = 500; // Firestore batch 限制一次最多 500 筆
+      const CHUNK = 500;
       for (let i = 0; i < snap.docs.length; i += CHUNK) {
         const batch = writeBatch(db);
         snap.docs.slice(i, i + CHUNK).forEach((docSnap) => batch.delete(docSnap.ref));
         await batch.commit();
-        }
-      } catch (err) {
-        console.error("handleClearMarkers error:", err);
-        throw err; // 讓 MapMoreMenu catch 並顯示 snackbar
       }
-    };
+    } catch (err) {
+      console.error("handleClearMarkers error:", err);
+      throw err;
+    }
+  };
 
   const center = markers.length
     ? [markers[markers.length - 1].lat, markers[markers.length - 1].lng]
@@ -256,7 +288,6 @@ export default function MapView() {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             {mapDoc?.title || "地圖"}
           </Typography>
-          {/* 功能選單按鈕 */}
           <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
             <MoreVertIcon />
           </IconButton>
@@ -277,23 +308,21 @@ export default function MapView() {
 
       <Box sx={{ flex: 1, position: "relative" }}>
         <MapContainer
-          center={center}
-          zoom={15}
+          center={[25.033, 121.5654]}
+          zoom={13}
           style={{ height: "100%", width: "100%" }}
+          whenCreated={(mapInstance) => {
+            mapRef.current = mapInstance; // 確保地圖創建時設置 ref
+          }}
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution="&copy; OpenStreetMap contributors"
           />
-          {/* 新增定位控制 */}
-          <LocateControl onLocationFound={handleLocationFound} />
           
-          {/* 顯示使用者位置的標記 */}
-          {userLocation && (
-            <Marker position={[userLocation.lat, userLocation.lng]}>
-              <Popup>您的位置</Popup>
-            </Marker>
-          )}
+          <MapInstance />
+
+          {/* 僅顯示地標，不顯示使用者 Marker */}
           {markers.map((m) => (
             <Marker key={m.id} position={[m.lat, m.lng]}>
               <Popup>
@@ -345,24 +374,10 @@ export default function MapView() {
         <Fab
           color="secondary"
           aria-label="定位"
-          onClick={() => {
-            if (!navigator.geolocation) {
-              alert("此裝置不支援 GPS");
-              return;
-            }
-            navigator.geolocation.getCurrentPosition(
-              (pos) => {
-                const { latitude, longitude } = pos.coords;
-                setUserLocation({ lat: latitude, lng: longitude });
-              },
-              (err) => {
-                alert("取得位置失敗：" + err.message);
-              }
-            );
-          }}
+          onClick={handleLocateClick} // 使用新的處理函數
           sx={{
             position: "absolute",
-            bottom: 96, // 放在新增地標按鈕上方
+            bottom: 96,
             right: 16,
             zIndex: 1000,
           }}
@@ -370,6 +385,7 @@ export default function MapView() {
           <LocationOnIcon />
         </Fab>
 
+        {/* 新增地標按鈕 */}
         <Fab
           color="primary"
           aria-label="新增地標"
