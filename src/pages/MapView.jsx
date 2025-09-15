@@ -37,7 +37,8 @@ import {
   CardMedia,
   CardContent,
   Chip,
-  Fab
+  Fab,
+  CardActions
 } from "@mui/material";
 import {
   ArrowBack as ArrowBackIcon,
@@ -45,6 +46,7 @@ import {
   MoreVert as MoreVertIcon,
   CameraAlt as CameraAltIcon,
   LocationOn as LocationOnIcon,
+  Delete as DeleteIcon
 } from "@mui/icons-material";
 
 import MapMoreMenu from "../components/MapMoreMenu";
@@ -69,6 +71,7 @@ export default function MapView() {
   const [pendingCoords, setPendingCoords] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
+  const [deletingMarkerId, setDeletingMarkerId] = useState(null);
   const fileInputRef = useRef();
 
   // 控制更多選單
@@ -153,6 +156,20 @@ export default function MapView() {
       setUploading(false);
     }
   }
+
+  // 刪除地標功能
+  const handleDeleteMarker = async (markerId) => {
+    if (!window.confirm("確定要刪除此地標嗎？")) return;
+    
+    setDeletingMarkerId(markerId);
+    try {
+      await deleteDoc(doc(db, "maps", mapId, "markers", markerId));
+    } catch (err) {
+      alert("刪除地標失敗：" + err.message);
+    } finally {
+      setDeletingMarkerId(null);
+    }
+  };
 
   // --- MapMoreMenu 的功能 ---
   const handleRename = async (id, newName) => {
@@ -242,6 +259,21 @@ export default function MapView() {
                       />
                     )}
                   </CardContent>
+                  <CardActions>
+                    <IconButton 
+                      aria-label="刪除地標"
+                      onClick={() => handleDeleteMarker(m.id)}
+                      disabled={deletingMarkerId === m.id}
+                      size="small"
+                      color="error"
+                    >
+                      {deletingMarkerId === m.id ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        <DeleteIcon />
+                      )}
+                    </IconButton>
+                  </CardActions>
                 </Card>
               </Popup>
             </Marker>
