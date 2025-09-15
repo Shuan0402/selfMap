@@ -7,6 +7,7 @@ import Loading from "./components/Loading";
 import AuthPage from "./pages/AuthPage";
 import MapsPage from "./pages/MapsPage";
 import MapView from "./pages/MapView";
+import { HashRouter } from "react-router-dom";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -23,13 +24,13 @@ export default function App() {
   if (initializing) return <Loading />;
 
   return (
-    <BrowserRouter basename="/selfMap">
+    <HashRouter>
       <Routes>
         <Route path="/" element={user ? <MapsPage user={user} /> : <AuthPage />} />
         <Route path="/login" element={<AuthPage />} />
         <Route path="/maps" element={user ? <MapsPage user={user} /> : <AuthPage />} />
         <Route path="/map/:mapId" element={user ? <MapView /> : <AuthPage />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }

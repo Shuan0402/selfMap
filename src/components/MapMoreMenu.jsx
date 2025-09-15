@@ -65,7 +65,7 @@ export default function MapMoreMenu({
   // 分享
   const handleShareClick = async () => {
     try {
-      const shareUrl = `${window.location.origin}/selfMap/map/${map.id}`;
+      const shareUrl = `${window.location.origin}/selfMap/#/map/${map.id}`;
       await navigator.clipboard.writeText(shareUrl);
       setSnackbar({ open: true, message: "連結已複製", severity: "success" });
     } catch {
