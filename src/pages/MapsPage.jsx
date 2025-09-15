@@ -45,6 +45,7 @@ import {
 } from "@mui/icons-material";
 
 import MapMoreMenu from "../components/MapMoreMenu";
+import AboutDialog from "../components/About";
 
 export default function MapsPage({ user }) {
   const [maps, setMaps] = useState([]);
@@ -163,6 +164,7 @@ export default function MapsPage({ user }) {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             我的地圖
           </Typography>
+          <AboutDialog />
           <IconButton color="inherit" onClick={() => signOut(auth)}>
             <LogoutIcon />
           </IconButton>

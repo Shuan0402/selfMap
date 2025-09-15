@@ -51,6 +51,7 @@ import {
 } from "@mui/icons-material";
 
 import MapMoreMenu from "../components/MapMoreMenu";
+import AboutDialog from "../components/About";
 
 // 修復 Leaflet 默認圖標問題
 const DefaultIcon = L.icon({
@@ -101,6 +102,8 @@ export default function MapView() {
   const [deletingMarkerId, setDeletingMarkerId] = useState(null);
   const fileInputRef = useRef();
   const [userLocation, setUserLocation] = useState(null);
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false); // 選擇拍照或上傳的彈窗
+
 
   const handleLocationFound = (coords) => {
     setUserLocation(coords); // 可用於其他功能，但不放 Marker
@@ -180,7 +183,9 @@ export default function MapView() {
           lng: pos.coords.longitude,
         });
         setOpenDialog(false);
-        fileInputRef.current?.click();
+
+        // 顯示選擇拍照或上傳的 Dialog
+        setPhotoDialogOpen(true);
       },
       (err) => {
         setOpenDialog(false);
@@ -288,6 +293,7 @@ export default function MapView() {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             {mapDoc?.title || "地圖"}
           </Typography>
+          <AboutDialog />
           <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
             <MoreVertIcon />
           </IconButton>
@@ -415,7 +421,7 @@ export default function MapView() {
         onChange={handleFileSelected}
       />
 
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+      {/* <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
         <DialogTitle>獲取位置中</DialogTitle>
         <DialogContent
           sx={{ display: "flex", alignItems: "center", flexDirection: "column" }}
@@ -425,6 +431,46 @@ export default function MapView() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>取消</Button>
+        </DialogActions>
+      </Dialog> */}
+
+      <Dialog open={photoDialogOpen} onClose={() => setPhotoDialogOpen(false)}>
+        <DialogTitle>新增地標照片</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" gutterBottom>
+            請選擇新增照片方式：
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "space-around", mt: 2 }}>
+            <Button variant="contained" component="label" color="primary">
+              拍照
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                hidden
+                onChange={(e) => {
+                  handleFileSelected(e);
+                  setPhotoDialogOpen(false);
+                }}
+              />
+            </Button>
+
+            <Button variant="outlined" component="label">
+              上傳照片
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) => {
+                  handleFileSelected(e);
+                  setPhotoDialogOpen(false);
+                }}
+              />
+            </Button>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPhotoDialogOpen(false)}>取消</Button>
         </DialogActions>
       </Dialog>
     </Box>

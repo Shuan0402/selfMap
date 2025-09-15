@@ -122,9 +122,9 @@ export default function MapMoreMenu({
       {/* 功能選單 */}
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={onClose}>
         <MenuItem onClick={handleRenameClick}>重新命名</MenuItem>
-        <MenuItem onClick={handleShareClick}>分享</MenuItem>
+        <MenuItem onClick={handleShareClick}>分享地圖</MenuItem>
         <MenuItem onClick={handleClearMarkersClick}>清空地標</MenuItem>
-        <MenuItem onClick={handleDeleteClick}>刪除</MenuItem>
+        <MenuItem onClick={handleDeleteClick}>刪除地圖</MenuItem>
       </Menu>
 
       {/* 重新命名對話框 */}
