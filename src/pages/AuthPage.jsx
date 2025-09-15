@@ -123,6 +123,16 @@ export default function AuthPage() {
             >
               {mode === "signin" ? "登入" : "建立帳號"}
             </SubmitButton>
+
+            <Typography
+              variant="body2"
+              color="textSecondary"
+              align="center"
+              sx={{ mt: 2 }}
+            >
+              © {new Date().getFullYear()} Shuan Ho. All rights reserved.
+            </Typography>
+
             
             {error && (
               <Alert severity="error" sx={{ mt: 2 }}>
