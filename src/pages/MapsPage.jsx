@@ -47,8 +47,9 @@ import {
 import MapMoreMenu from "../components/MapMoreMenu";
 import AboutDialog from "../components/About";
 import { renameMap, deleteMap, shareMap, clearMarkers } from "../utils/mapActions";
+import ThemeToggle from "../components/ThemeToggle";
 
-export default function MapsPage({ user }) {
+export default function MapsPage({ user, themeMode, toggleTheme }) {
   const [maps, setMaps] = useState([]);
   const [title, setTitle] = useState("");
   const [creating, setCreating] = useState(false);
@@ -143,20 +144,33 @@ export default function MapsPage({ user }) {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate("/"); // 不要加 /selfMap
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
-    <Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: "grey.100" }}>
+    <Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: (theme) => theme.palette.background.default, }}>
       {/* AppBar */}
       <AppBar position="static">
         <Toolbar>
           <MapIcon sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            我的地圖
-          </Typography>
+          <Typography variant="h6">我的地圖</Typography>
+
+          <Box sx={{ flexGrow: 1 }} /> 
+
+          <ThemeToggle theme={themeMode} toggleTheme={toggleTheme} />
+
           <AboutDialog />
-          <IconButton color="inherit" onClick={() => signOut(auth)}>
+          <IconButton color="inherit" onClick={handleLogout}>
             <LogoutIcon />
           </IconButton>
         </Toolbar>
+
       </AppBar>
 
       {/* 主內容 */}

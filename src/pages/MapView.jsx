@@ -37,7 +37,6 @@ import {
   CardContent,
   Chip,
   Fab,
-  CardActions
 } from "@mui/material";
 import {
   ArrowBack as ArrowBackIcon,
@@ -45,11 +44,13 @@ import {
   MoreVert as MoreVertIcon,
   CameraAlt as CameraAltIcon,
   LocationOn as LocationOnIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Logout as LogoutIcon,
 } from "@mui/icons-material";
 
 import MapMoreMenu from "../components/MapMoreMenu";
 import AboutDialog from "../components/About";
+import ThemeToggle from "../components/ThemeToggle";
 
 import { reverseGeocode } from "../utils/geocode";
 import { renameMap, deleteMap, shareMap, clearMarkers } from "../utils/mapActions";
@@ -65,7 +66,7 @@ const DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-export default function MapView() {
+export default function MapView({ themeMode, toggleTheme }) {
   const { mapId } = useParams();
   const navigate = useNavigate();
   const mapRef = useRef();
@@ -292,6 +293,15 @@ export default function MapView() {
       }
     };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate("/"); // 不要加 /selfMap
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <AppBar position="static" color="default" elevation={1}>
@@ -302,6 +312,8 @@ export default function MapView() {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             {mapDoc?.title || "地圖"}
           </Typography>
+          
+          <ThemeToggle theme={themeMode} toggleTheme={toggleTheme} />
           <AboutDialog />
           <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
             <MoreVertIcon />
@@ -315,8 +327,8 @@ export default function MapView() {
             onShare={handleShareMap}
             onClearMarkers={handleClearMarkers}
           />
-          <IconButton onClick={() => signOut(auth)} color="inherit">
-            <ExitToAppIcon />
+          <IconButton color="inherit" onClick={handleLogout}>
+            <LogoutIcon />
           </IconButton>
         </Toolbar>
       </AppBar>

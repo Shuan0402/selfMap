@@ -15,6 +15,7 @@ import {
   Divider
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import ThemeToggle from "../components/ThemeToggle";
 
 // 樣式組件
 const AuthPaper = styled(Paper)(({ theme }) => ({
@@ -35,7 +36,7 @@ const SubmitButton = styled(Button)(({ theme }) => ({
   margin: theme.spacing(3, 0, 2)
 }));
 
-export default function AuthPage() {
+export default function AuthPage({ themeMode, toggleTheme }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState("signin");
@@ -73,9 +74,20 @@ export default function AuthPage() {
         }}
       >
         <AuthPaper elevation={6}>
-          <Typography component="h1" variant="h4" gutterBottom>
-            SelfMap
-          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "100%",
+              mb: 2
+            }}
+          >
+            <Typography component="h1" variant="h4">
+              SelfMap
+            </Typography>
+            <ThemeToggle theme={themeMode} toggleTheme={toggleTheme} />
+          </Box>
           
           <Tabs
             value={mode}
