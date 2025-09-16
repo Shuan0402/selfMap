@@ -31,22 +31,22 @@ export default function AboutIcon() {
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle sx={{ textAlign: "center", pt: 2, pb: 1 }}>
             <Link
-                href="https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1"   // ✅ 換成你要的網址
-                target="_blank"                   // 在新分頁開啟
-                underline="none"                  // 不要底線
+                href="https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1"
+                target="_blank"
+                underline="none"
             >
                 <Box
                     component="img"
                     src={`${import.meta.env.BASE_URL}img/Shuan.png`}
                     alt="作者資訊"
                     sx={{
-                    width: 100,               // 調整寬度
-                    height: 100,              // 固定高度（避免比例跑掉）
+                    width: 100,
+                    height: 100, 
                     objectFit: "cover",
-                    borderRadius: "50%",     // ✅ 圓形頭像效果
-                    mx: "auto",              // 置中
-                    mt: 2,                   // 往下推一點
-                    mb: 1                    // 與文字留點距離
+                    borderRadius: "50%",
+                    mx: "auto",
+                    mt: 2,
+                    mb: 1
                     }}
                 />
             </Link>
