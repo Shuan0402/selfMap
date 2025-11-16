@@ -53,6 +53,9 @@ import {
 import { compressAndConvertToBase64 } from "../utils/image";
 import ListIcon from "@mui/icons-material/List";
 import MarkerListDialog from "../components/MarkerListDialog";
+import RecentActivityButton from "../components/RecentActivityButton";
+import AppTopBar from "../components/AppTopBar";
+
 
 // 修復 Leaflet 默認圖標問題
 const DefaultIcon = L.icon({
@@ -429,19 +432,14 @@ export default function MapView({ themeMode, toggleTheme }) {
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: (theme) => theme.palette.background.default, }}>
-        <MapToolbar
-          title={mapDoc?.title}
-          themeMode={themeMode}
-          toggleTheme={toggleTheme}
-          map={mapDoc}
-          onRename={handleRenameMap}
-          onDelete={handleDeleteMap}
-          onShare={handleShareMap}
-          onClearMarkers={handleClearMarkers}
-          onLogout={handleLogout}
-          onBack={handleBack}
-          userName={auth.currentUser?.displayName || "未命名使用者"}
-        />
+          <AppTopBar
+            variant="back" // ⬅️ 回上一頁 + SelfMap
+            themeMode={themeMode}
+            toggleTheme={toggleTheme}
+            userName={auth.currentUser?.displayName || "未命名使用者"}
+            onLogout={handleLogout}
+            onBack={handleBack}   // 你原本的 handleBack: navigate("/maps")
+          />
 
         <MapContainer
           center={center}

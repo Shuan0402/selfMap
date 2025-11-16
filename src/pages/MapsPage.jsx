@@ -48,6 +48,9 @@ import MapMoreMenu from "../components/MapMoreMenu";
 import AboutDialog from "../components/About";
 import { renameMap, deleteMap, shareMap, clearMarkers } from "../utils/mapActions";
 import ThemeToggle from "../components/ThemeToggle";
+import RecentActivityButton from "../components/RecentActivityButton";
+import AppTopBar from "../components/AppTopBar";
+
 
 export default function MapsPage({ user, themeMode, toggleTheme }) {
   const [maps, setMaps] = useState([]);
@@ -158,39 +161,13 @@ export default function MapsPage({ user, themeMode, toggleTheme }) {
   return (
     <Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: (theme) => theme.palette.background.default, }}>
       {/* AppBar */}
-      <AppBar position="static">
-        <Toolbar>
-          <MapIcon sx={{ mr: 1 }} />
-          <Typography variant="h6">我的地圖</Typography>
-
-          {/* 把中間撐開，讓右邊是「使用者名稱 + 按鈕群」 */}
-          <Box sx={{ flexGrow: 1 }} />
-
-          {/* ✅ 使用者名稱，可點擊進入使用者空間 */}
-          <Typography
-            variant="body2"
-            sx={{
-              mr: 2,
-              cursor: "pointer",
-              "&:hover": { textDecoration: "underline" },
-            }}
-            onClick={() => navigate("/me")}
-          >
-            {userDisplayName}
-          </Typography>
-
-          {/* 主題切換 */}
-          <ThemeToggle theme={themeMode} toggleTheme={toggleTheme} />
-
-          {/* 關於對話框 */}
-          <AboutDialog />
-
-          {/* 登出按鈕 */}
-          <IconButton color="inherit" onClick={handleLogout}>
-            <LogoutIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
+      <AppTopBar
+        variant="maps" // 🗺️ MapIcon + SelfMap
+        themeMode={themeMode}
+        toggleTheme={toggleTheme}
+        userName={user?.displayName || "未命名使用者"}
+        onLogout={handleLogout}
+      />
 
       {/* 主內容 */}
       <Container maxWidth="md" sx={{ py: 4 }}>
