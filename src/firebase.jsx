@@ -1,15 +1,16 @@
+// src/firebase.jsx （路徑依你專案為準）
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAPcdwpdfDEzZ2RXD6Sr35488hRtg5Co_8",
-  authDomain: "selfmap-d948d.firebaseapp.com",
-  projectId: "selfmap-d948d",
-  storageBucket: "selfmap-d948d.firebasestorage.app",
-  messagingSenderId: "492340350388",
-  appId: "1:492340350388:web:f847717f5a0b5e9419b6e1",
-  measurementId: "G-S8QV830559",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID, // 如果有用 Analytics 才需要
 };
 
 const app = initializeApp(firebaseConfig);
