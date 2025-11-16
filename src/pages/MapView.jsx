@@ -51,6 +51,8 @@ import {
   clearMarkers,
 } from "../utils/mapActions";
 import { compressAndConvertToBase64 } from "../utils/image";
+import ListIcon from "@mui/icons-material/List";
+import MarkerListDialog from "../components/MarkerListDialog";
 
 // 修復 Leaflet 默認圖標問題
 const DefaultIcon = L.icon({
@@ -94,6 +96,8 @@ export default function MapView({ themeMode, toggleTheme }) {
   const [commentInputs, setCommentInputs] = useState({});
   const [noteInputs, setNoteInputs] = useState({});
   const [openedPopupId, setOpenedPopupId] = useState(null);
+  const [markerListOpen, setMarkerListOpen] = useState(false);
+  const markerRefs = useRef({}); 
 
 
 
@@ -374,6 +378,52 @@ export default function MapView({ themeMode, toggleTheme }) {
     }
   };
 
+  // 最上面已經有 import L from "leaflet"; 的話就不用再加
+
+  const handleSelectMarkerFromList = (marker) => {
+    setMarkerListOpen(false);
+
+    const map = mapRef.current;
+    if (map) {
+      const zoom = map.getZoom() || 16;
+
+      // 目標地標的位置
+      const targetLatLng = L.latLng(marker.lat, marker.lng);
+      const targetPoint = map.project(targetLatLng, zoom);
+
+      // ⭐ 把地圖「中心」往上移 270px，
+      // 讓 marker 看起來在畫面偏下（上面空間給 Popup）
+      const offsetY = 270; // 可以自己微調 100~200
+      const centerPoint = targetPoint.subtract([0, offsetY]);
+      const centerLatLng = map.unproject(centerPoint, zoom);
+
+      map.flyTo(centerLatLng, zoom, { animate: true });
+
+      // 再打開該 marker 的 Popup
+      const markerInstance = markerRefs.current[marker.id];
+      if (markerInstance) {
+        // 先把其他 Popup 關掉以防萬一
+        map.closePopup();
+        markerInstance.openPopup();
+      }
+    }
+
+    setOpenedPopupId(marker.id);
+  };
+
+
+
+  const handleOpenMarkerList = () => {
+    // ⭐ 先關掉目前所有 Popup
+    if (mapRef.current) {
+      mapRef.current.closePopup();
+    }
+    setOpenedPopupId(null);
+
+    // 再打開列表 Dialog
+    setMarkerListOpen(true);
+  };
+
 
 
   return (
@@ -412,17 +462,21 @@ export default function MapView({ themeMode, toggleTheme }) {
             <Marker
               key={m.id}
               position={[m.lat, m.lng]}
+              // ⭐ 用 ref 把 Leaflet marker 實體存起來
+              ref={(markerInstance) => {
+                if (markerInstance) {
+                  markerRefs.current[m.id] = markerInstance;
+                }
+              }}
               eventHandlers={{
-                click: () => setOpenedPopupId(m.id),
+                click: () => {
+                  // Leaflet 默認會 autoClose 其他 Popup，不用自己關
+                  setOpenedPopupId(m.id);
+                },
               }}
             >
-              <Popup
-                open={openedPopupId === m.id}
-                minWidth={320}
-                maxWidth={320}
-                closeOnClick={false}
-                autoClose={false}
-              >
+              {/* ⭐ 不要再用 open={...}，讓 Leaflet 自己處理開關 */}
+              <Popup>
                 <MarkerPopupCard
                   marker={m}
                   currentUserUid={auth.currentUser?.uid || null}
@@ -437,7 +491,6 @@ export default function MapView({ themeMode, toggleTheme }) {
                     handleCommentInputChange(m.id, value)
                   }
                   onAddComment={() => handleAddComment(m)}
-                  onDeleteComment={(comment) => handleDeleteComment(m, comment)}
                   // 備註
                   noteInput={
                     noteInputs[m.id] !== undefined
@@ -449,18 +502,34 @@ export default function MapView({ themeMode, toggleTheme }) {
                   }
                   onSaveNote={async () => {
                     await handleSaveNote(m.id);
+                    // ⭐ 不再關閉 popup，只改回顯示模式（這部分你已經有做）
                   }}
                   // 標題地址編輯
                   onUpdateMeta={(data) => handleUpdateMarkerMeta(m.id, data)}
                 />
               </Popup>
-
             </Marker>
           ))}
 
 
 
         </MapContainer>
+
+        {/* 地標列表按鈕 */}
+        <Fab
+          color="default"
+          aria-label="地標列表"
+          onClick={handleOpenMarkerList}
+          sx={{
+            position: "absolute",
+            bottom: 176,
+            right: 16,
+            zIndex: 1000,
+          }}
+        >
+          <ListIcon />
+        </Fab>
+
 
         {/* 定位按鈕 */}
         <Fab
@@ -529,6 +598,14 @@ export default function MapView({ themeMode, toggleTheme }) {
           {snackbar.message}
         </MuiAlert>
       </Snackbar>
+
+      {/* 地標列表 Dialog */}
+      <MarkerListDialog
+        open={markerListOpen}
+        onClose={() => setMarkerListOpen(false)}
+        markers={markers}
+        onSelectMarker={handleSelectMarkerFromList}
+      />
     </Box>
   );
 }
