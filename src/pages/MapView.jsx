@@ -13,6 +13,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import { auth, db } from "../firebase";
+import { logActivity } from "../utils/activity";
 import { signOut } from "firebase/auth";
 import {
   collection,
@@ -367,6 +368,16 @@ export default function MapView({ themeMode, toggleTheme }) {
       await updateDoc(doc(db, "maps", mapId, "markers", markerId), {
         note: value,
       });
+
+      const user = auth.currentUser;
+      if (user) {
+        await logActivity(
+          user.uid,
+          "edit_marker_note",
+          "更新地標備註",
+          { markerId }
+        );
+      }
     } catch (err) {
       alert("儲存備註失敗：" + err.message);
     }
@@ -376,6 +387,16 @@ export default function MapView({ themeMode, toggleTheme }) {
   const handleUpdateMarkerMeta = async (markerId, data) => {
     try {
       await updateDoc(doc(db, "maps", mapId, "markers", markerId), data);
+
+      const user = auth.currentUser;
+      if (user) {
+        await logActivity(
+          user.uid,
+          "edit_marker_meta",
+          "更新地標標題 / 地址",
+          { markerId, ...data }
+        );
+      }
     } catch (err) {
       alert("更新地標資訊失敗：" + err.message);
     }

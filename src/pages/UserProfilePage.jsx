@@ -29,6 +29,8 @@ import {
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 
 import AppTopBar from "../components/AppTopBar";
+import { logActivity } from "../utils/activity";
+
 
 const ProfilePaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -121,6 +123,12 @@ export default function UserProfilePage({ themeMode, toggleTheme }) {
       } catch (err) {
         console.warn("更新 Firestore 名稱失敗，可忽略：", err);
       }
+
+      await logActivity(
+        user.uid,
+        "rename_user",
+        `變更使用者名稱為「${trimmed}」`
+      );
 
       setNameMessage("名稱已更新");
       setEditingName(false);

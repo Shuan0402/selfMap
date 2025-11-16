@@ -88,7 +88,7 @@ export default function AppTopBar({
             whiteSpace: "nowrap",
             "&:hover": { textDecoration: "underline" },
           }}
-          onClick={() => navigate("/user")}
+          onClick={() => navigate("/me")}
         >
           {safeUserName}
         </Typography>
