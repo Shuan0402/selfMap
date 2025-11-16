@@ -61,6 +61,8 @@ export default function MapsPage({ user, themeMode, toggleTheme }) {
   const [selectedMap, setSelectedMap] = useState(null);
 
   const navigate = useNavigate();
+  const userDisplayName =
+    user?.displayName || "未命名使用者";
 
   useEffect(() => {
     if (!user) return;
@@ -158,19 +160,36 @@ export default function MapsPage({ user, themeMode, toggleTheme }) {
       {/* AppBar */}
       <AppBar position="static">
         <Toolbar>
-          <MapIcon sx={{ mr: 2 }} />
+          <MapIcon sx={{ mr: 1 }} />
           <Typography variant="h6">我的地圖</Typography>
 
-          <Box sx={{ flexGrow: 1 }} /> 
+          {/* 把中間撐開，讓右邊是「使用者名稱 + 按鈕群」 */}
+          <Box sx={{ flexGrow: 1 }} />
 
+          {/* ✅ 使用者名稱，可點擊進入使用者空間 */}
+          <Typography
+            variant="body2"
+            sx={{
+              mr: 2,
+              cursor: "pointer",
+              "&:hover": { textDecoration: "underline" },
+            }}
+            onClick={() => navigate("/me")}
+          >
+            {userDisplayName}
+          </Typography>
+
+          {/* 主題切換 */}
           <ThemeToggle theme={themeMode} toggleTheme={toggleTheme} />
 
+          {/* 關於對話框 */}
           <AboutDialog />
+
+          {/* 登出按鈕 */}
           <IconButton color="inherit" onClick={handleLogout}>
             <LogoutIcon />
           </IconButton>
         </Toolbar>
-
       </AppBar>
 
       {/* 主內容 */}
