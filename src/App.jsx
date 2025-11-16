@@ -10,6 +10,8 @@ import AuthPage from "./pages/AuthPage";
 import MapsPage from "./pages/MapsPage";
 import MapView from "./pages/MapView";
 import UserProfilePage from "./pages/UserProfilePage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 function AppWrapper({ children }) {
   const theme = useTheme();
@@ -128,6 +130,16 @@ export default function App() {
                 ) : (
                   <AuthPage themeMode={themeMode} toggleTheme={toggleTheme} />
                 )
+              }
+            />
+
+            <Route
+              path="/forgot-password"
+              element={
+                <ForgotPasswordPage
+                  themeMode={themeMode}
+                  toggleTheme={toggleTheme}
+                />
               }
             />
           </Routes>
