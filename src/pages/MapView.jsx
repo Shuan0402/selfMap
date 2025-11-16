@@ -191,6 +191,10 @@ export default function MapView({ themeMode, toggleTheme }) {
         photoBase64: base64Data,
         address: addr,
         createdAt: serverTimestamp(),
+        title: "未命名地標",
+        note: "",
+        comments: [],
+        createdBy: auth.currentUser?.uid || null,
       });
 
       setPendingCoords(null);
@@ -274,6 +278,17 @@ export default function MapView({ themeMode, toggleTheme }) {
     ? [markers[markers.length - 1].lat, markers[markers.length - 1].lng]
     : [25.033, 121.5654];
 
+  const handleOpenInGoogleMaps = (marker) => {
+    const { lat, lng, address } = marker;
+    const destination = address || `${lat},${lng}`;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+      destination
+    )}`;
+
+    window.open(url, "_blank");
+  };
+
+
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <MapToolbar
@@ -306,18 +321,21 @@ export default function MapView({ themeMode, toggleTheme }) {
           <MapInstance mapRef={mapRef} />
 
           {markers.map((m) => (
-            <Marker key={m.id} position={[m.lat, m.lng]}>
-              <Popup>
-                <MarkerPopupCard
-                  marker={m}
-                  onCopyAddress={handleCopyAddress}
-                  onDelete={() => handleDeleteMarker(m.id)}
-                  isDeleting={deletingMarkerId === m.id}
-                  onImageClick={setEnlargedImg}
-                />
-              </Popup>
-            </Marker>
-          ))}
+          <Marker key={m.id} position={[m.lat, m.lng]}>
+            <Popup>
+              <MarkerPopupCard
+                marker={m}
+                onCopyAddress={handleCopyAddress}
+                onDelete={() => handleDeleteMarker(m.id)}
+                isDeleting={deletingMarkerId === m.id}
+                onImageClick={setEnlargedImg}
+                onOpenInGoogleMaps={handleOpenInGoogleMaps}
+                currentUserUid={auth.currentUser?.uid || null}
+              />
+            </Popup>
+          </Marker>
+        ))}
+
         </MapContainer>
 
         {/* 定位按鈕 */}
