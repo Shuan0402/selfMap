@@ -378,20 +378,21 @@ export default function MapView({ themeMode, toggleTheme }) {
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <MapToolbar
-        title={mapDoc?.title}
-        themeMode={themeMode}
-        toggleTheme={toggleTheme}
-        map={mapDoc}
-        onRename={handleRenameMap}
-        onDelete={handleDeleteMap}
-        onShare={handleShareMap}
-        onClearMarkers={handleClearMarkers}
-        onLogout={handleLogout}
-        onBack={handleBack}
-      />
+      <Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: (theme) => theme.palette.background.default, }}>
+        <MapToolbar
+          title={mapDoc?.title}
+          themeMode={themeMode}
+          toggleTheme={toggleTheme}
+          map={mapDoc}
+          onRename={handleRenameMap}
+          onDelete={handleDeleteMap}
+          onShare={handleShareMap}
+          onClearMarkers={handleClearMarkers}
+          onLogout={handleLogout}
+          onBack={handleBack}
+          userName={auth.currentUser?.displayName || "未命名使用者"}
+        />
 
-      <Box sx={{ flex: 1, position: "relative" }}>
         <MapContainer
           center={center}
           zoom={13}

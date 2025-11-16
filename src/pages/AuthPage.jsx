@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "../firebase";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+
 import {
   Container,
   Paper,
@@ -12,7 +18,6 @@ import {
   Typography,
   Box,
   Alert,
-  Divider
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import ThemeToggle from "../components/ThemeToggle";
@@ -24,41 +29,68 @@ const AuthPaper = styled(Paper)(({ theme }) => ({
   flexDirection: "column",
   alignItems: "center",
   maxWidth: 400,
-  margin: "0 auto"
+  margin: "0 auto",
 }));
 
 const Form = styled("form")(({ theme }) => ({
   width: "100%",
-  marginTop: theme.spacing(3)
+  marginTop: theme.spacing(3),
 }));
 
 const SubmitButton = styled(Button)(({ theme }) => ({
-  margin: theme.spacing(3, 0, 2)
+  margin: theme.spacing(3, 0, 2),
 }));
 
 export default function AuthPage({ themeMode, toggleTheme }) {
+  const [mode, setMode] = useState("signin"); // 'signin' | 'signup'
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState("signin");
+  const [displayName, setDisplayName] = useState(""); // 使用者名稱
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleModeChange = (event, newValue) => {
     setMode(newValue);
-    setError(""); // 切換模式時清除錯誤
+    setError("");
   };
 
   async function handleAuth(e) {
     e.preventDefault();
     setError("");
+
     try {
       if (mode === "signup") {
-        await createUserWithEmailAndPassword(auth, email, password);
+        // 註冊流程
+        if (!displayName.trim()) {
+          setError("請輸入使用者名稱");
+          return;
+        }
+
+        const cred = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+        // 設定 Firebase Auth 的 displayName
+        await updateProfile(cred.user, {
+          displayName: displayName.trim(),
+        });
+
+        // 同步一份到 Firestore users/{uid}
+        await setDoc(doc(db, "users", cred.user.uid), {
+          name: displayName.trim(),
+          email: email.trim(),
+          createdAt: serverTimestamp(),
+        });
       } else {
+        // 登入流程
         await signInWithEmailAndPassword(auth, email, password);
       }
+
       navigate("/maps");
     } catch (err) {
+      console.error(err);
       setError(err.message);
     }
   }
@@ -70,7 +102,7 @@ export default function AuthPage({ themeMode, toggleTheme }) {
           marginTop: 8,
           display: "flex",
           flexDirection: "column",
-          alignItems: "center"
+          alignItems: "center",
         }}
       >
         <AuthPaper elevation={6}>
@@ -80,7 +112,7 @@ export default function AuthPage({ themeMode, toggleTheme }) {
               alignItems: "center",
               justifyContent: "space-between",
               width: "100%",
-              mb: 2
+              mb: 2,
             }}
           >
             <Typography component="h1" variant="h4">
@@ -88,7 +120,7 @@ export default function AuthPage({ themeMode, toggleTheme }) {
             </Typography>
             <ThemeToggle theme={themeMode} toggleTheme={toggleTheme} />
           </Box>
-          
+
           <Tabs
             value={mode}
             onChange={handleModeChange}
@@ -98,8 +130,24 @@ export default function AuthPage({ themeMode, toggleTheme }) {
             <Tab label="登入" value="signin" />
             <Tab label="註冊" value="signup" />
           </Tabs>
-          
+
           <Form onSubmit={handleAuth}>
+            {/* 註冊模式下顯示使用者名稱欄位 */}
+            {mode === "signup" && (
+              <TextField
+                variant="outlined"
+                margin="normal"
+                required
+                fullWidth
+                id="displayName"
+                label="使用者名稱"
+                name="displayName"
+                autoComplete="nickname"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+            )}
+
             <TextField
               variant="outlined"
               margin="normal"
@@ -113,6 +161,7 @@ export default function AuthPage({ themeMode, toggleTheme }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
+
             <TextField
               variant="outlined"
               margin="normal"
@@ -126,6 +175,7 @@ export default function AuthPage({ themeMode, toggleTheme }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+
             <SubmitButton
               type="submit"
               fullWidth
@@ -145,7 +195,6 @@ export default function AuthPage({ themeMode, toggleTheme }) {
               © {new Date().getFullYear()} Shuan Ho. All rights reserved.
             </Typography>
 
-            
             {error && (
               <Alert severity="error" sx={{ mt: 2 }}>
                 {error}

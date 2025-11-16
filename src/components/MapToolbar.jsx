@@ -13,6 +13,7 @@ import AboutDialog from "./About";
 import ThemeToggle from "./ThemeToggle";
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function MapToolbar({
   title,
@@ -25,11 +26,15 @@ export default function MapToolbar({
   onClearMarkers,
   onLogout,
   onBack,
+  userName,
 }) {
   const [anchorEl, setAnchorEl] = useState(null);
+  const navigate = useNavigate();
 
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
+
+  const safeUserName = userName || "未命名使用者";
 
   return (
     <AppBar position="static" color="default" elevation={1}>
@@ -40,6 +45,16 @@ export default function MapToolbar({
 
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
           {title || "地圖"}
+        </Typography>
+
+        {/* 使用者名稱（可點擊進入使用者頁面） */}
+        <Typography
+          variant="body2"
+          sx={{ mr: 2, cursor: "pointer" }}
+          color="text.secondary"
+          onClick={() => navigate("/me")}
+        >
+          {safeUserName}
         </Typography>
 
         <ThemeToggle theme={themeMode} toggleTheme={toggleTheme} />

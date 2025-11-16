@@ -9,8 +9,7 @@ import Loading from "./components/Loading";
 import AuthPage from "./pages/AuthPage";
 import MapsPage from "./pages/MapsPage";
 import MapView from "./pages/MapView";
-import ThemeToggle from "./components/ThemeToggle";
-
+import UserProfilePage from "./pages/UserProfilePage";
 
 function AppWrapper({ children }) {
   const theme = useTheme();
@@ -25,7 +24,7 @@ function AppWrapper({ children }) {
 export default function App() {
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
-  const [themeMode, setThemeMode] = useState(getInitialTheme()); // ✅ 注意這裡
+  const [themeMode, setThemeMode] = useState(getInitialTheme());
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -38,14 +37,14 @@ export default function App() {
   if (initializing) return <Loading />;
 
   const toggleTheme = () => {
-    setThemeMode(themeMode === "light" ? "dark" : "light");
-    localStorage.setItem("theme", themeMode === "light" ? "dark" : "light");
+    const next = themeMode === "light" ? "dark" : "light";
+    setThemeMode(next);
+    localStorage.setItem("theme", next);
   };
 
-  // 建立 MUI 主題
   const muiTheme = createTheme({
     palette: {
-      mode: themeMode, // ✅ 這裡用 state
+      mode: themeMode,
     },
   });
 
@@ -53,26 +52,87 @@ export default function App() {
     <ThemeProvider theme={muiTheme}>
       <AppWrapper>
         <HashRouter>
-          {/* <ThemeToggle theme={themeMode} toggleTheme={toggleTheme} /> */}
           <Routes>
             <Route
               path="/"
               element={
                 user ? (
-                  <MapsPage user={user} themeMode={themeMode} toggleTheme={toggleTheme} />
+                  <MapsPage
+                    user={user}
+                    themeMode={themeMode}
+                    toggleTheme={toggleTheme}
+                  />
+                ) : (
+                  <AuthPage
+                    themeMode={themeMode}
+                    toggleTheme={toggleTheme}
+                  />
+                )
+              }
+            />
+
+            <Route
+              path="/login"
+              element={
+                <AuthPage
+                  themeMode={themeMode}
+                  toggleTheme={toggleTheme}
+                />
+              }
+            />
+
+            <Route
+              path="/maps"
+              element={
+                user ? (
+                  <MapsPage
+                    user={user}
+                    themeMode={themeMode}
+                    toggleTheme={toggleTheme}
+                  />
+                ) : (
+                  <AuthPage
+                    themeMode={themeMode}
+                    toggleTheme={toggleTheme}
+                  />
+                )
+              }
+            />
+
+            <Route
+              path="/map/:mapId"
+              element={
+                user ? (
+                  <MapView
+                    themeMode={themeMode}
+                    toggleTheme={toggleTheme}
+                  />
+                ) : (
+                  <AuthPage
+                    themeMode={themeMode}
+                    toggleTheme={toggleTheme}
+                  />
+                )
+              }
+            />
+
+            {/* 使用者空間 */}
+            <Route
+              path="/me"
+              element={
+                user ? (
+                  <UserProfilePage
+                    themeMode={themeMode}
+                    toggleTheme={toggleTheme}
+                  />
                 ) : (
                   <AuthPage themeMode={themeMode} toggleTheme={toggleTheme} />
                 )
               }
             />
-
-            <Route path="/login" element={<AuthPage themeMode={themeMode} toggleTheme={toggleTheme} />} />
-            <Route path="/maps" element={user ? <MapsPage user={user} themeMode={themeMode} toggleTheme={toggleTheme} /> : <AuthPage />} />
-            <Route path="/map/:mapId" element={user ? <MapView themeMode={themeMode} toggleTheme={toggleTheme} /> : <AuthPage />} />
           </Routes>
         </HashRouter>
       </AppWrapper>
-      
     </ThemeProvider>
   );
 }
