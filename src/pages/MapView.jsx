@@ -23,6 +23,8 @@ import {
   orderBy,
   serverTimestamp,
   deleteDoc,
+  updateDoc,
+  arrayUnion,
 } from "firebase/firestore";
 
 import {
@@ -89,6 +91,11 @@ export default function MapView({ themeMode, toggleTheme }) {
     message: "",
     severity: "success",
   });
+  const [commentInputs, setCommentInputs] = useState({});
+  const [noteInputs, setNoteInputs] = useState({});
+  const [openedPopupId, setOpenedPopupId] = useState(null);
+
+
 
   // 取得地圖資料
   useEffect(() => {
@@ -288,6 +295,86 @@ export default function MapView({ themeMode, toggleTheme }) {
     window.open(url, "_blank");
   };
 
+  // 更新「新增評論」時輸入框
+  const handleCommentInputChange = (markerId, value) => {
+    setCommentInputs((prev) => ({ ...prev, [markerId]: value }));
+  };
+
+  // 送出評論
+  const handleAddComment = async (marker) => {
+    const markerId = marker.id;
+    const text = (commentInputs[markerId] || "").trim();
+    if (!text) return;
+
+    const user = auth.currentUser;
+    if (!user) {
+      alert("請先登入再留言");
+      return;
+    }
+
+    const userUid = user.uid;
+    const userName = user.displayName || "未命名使用者";
+
+    // 先從目前 state 取得現有評論
+    const existingComments = Array.isArray(marker.comments)
+      ? marker.comments
+      : [];
+
+    // 把這個使用者以前留過的評論移除
+    const filtered = existingComments.filter(
+      (c) => c.authorUid !== userUid
+    );
+
+    // 加入最新這一筆
+    const newComments = [
+      ...filtered,
+      {
+        text,
+        authorName: userName,
+        authorUid: userUid,
+        createdAt: Date.now(), // 用 client 時間即可
+      },
+    ];
+
+    try {
+      await updateDoc(doc(db, "maps", mapId, "markers", markerId), {
+        comments: newComments,
+      });
+
+      setCommentInputs((prev) => ({ ...prev, [markerId]: "" }));
+    } catch (err) {
+      alert("新增評論失敗：" + err.message);
+    }
+  };
+
+  // 備註輸入框的值
+  const handleNoteInputChange = (markerId, value) => {
+    setNoteInputs((prev) => ({ ...prev, [markerId]: value }));
+  };
+
+  // 儲存備註
+  const handleSaveNote = async (markerId) => {
+    const value = (noteInputs[markerId] ?? "").trim();
+
+    try {
+      await updateDoc(doc(db, "maps", mapId, "markers", markerId), {
+        note: value,
+      });
+    } catch (err) {
+      alert("儲存備註失敗：" + err.message);
+    }
+  };
+
+  // 編輯標題 / 地址
+  const handleUpdateMarkerMeta = async (markerId, data) => {
+    try {
+      await updateDoc(doc(db, "maps", mapId, "markers", markerId), data);
+    } catch (err) {
+      alert("更新地標資訊失敗：" + err.message);
+    }
+  };
+
+
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -321,20 +408,53 @@ export default function MapView({ themeMode, toggleTheme }) {
           <MapInstance mapRef={mapRef} />
 
           {markers.map((m) => (
-          <Marker key={m.id} position={[m.lat, m.lng]}>
-            <Popup>
-              <MarkerPopupCard
-                marker={m}
-                onCopyAddress={handleCopyAddress}
-                onDelete={() => handleDeleteMarker(m.id)}
-                isDeleting={deletingMarkerId === m.id}
-                onImageClick={setEnlargedImg}
-                onOpenInGoogleMaps={handleOpenInGoogleMaps}
-                currentUserUid={auth.currentUser?.uid || null}
-              />
-            </Popup>
-          </Marker>
-        ))}
+            <Marker
+              key={m.id}
+              position={[m.lat, m.lng]}
+              eventHandlers={{
+                click: () => setOpenedPopupId(m.id),
+              }}
+            >
+              <Popup
+              open={openedPopupId === m.id}
+              closeOnClick={false}   // 點地圖不要自動關
+              autoClose={false}      // 開另一個 popup 時也不要自動關（可依喜好）
+            >
+                <MarkerPopupCard
+                  marker={m}
+                  currentUserUid={auth.currentUser?.uid || null}
+                  onCopyAddress={handleCopyAddress}
+                  onDelete={() => handleDeleteMarker(m.id)}
+                  isDeleting={deletingMarkerId === m.id}
+                  onImageClick={setEnlargedImg}
+                  onOpenInGoogleMaps={handleOpenInGoogleMaps}
+                  // 評論
+                  commentInput={commentInputs[m.id] || ""}
+                  onCommentInputChange={(value) =>
+                    handleCommentInputChange(m.id, value)
+                  }
+                  onAddComment={() => handleAddComment(m)}
+                  // 備註
+                  noteInput={
+                    noteInputs[m.id] !== undefined
+                      ? noteInputs[m.id]
+                      : m.note || ""
+                  }
+                  onNoteInputChange={(value) =>
+                    handleNoteInputChange(m.id, value)
+                  }
+                  onSaveNote={async () => {
+                    await handleSaveNote(m.id);
+                    // 這裡不要關閉 Popup，只是更新 display 模式
+                  }}
+                  // 標題地址編輯
+                  onUpdateMeta={(data) => handleUpdateMarkerMeta(m.id, data)}
+                />
+              </Popup>
+            </Marker>
+          ))}
+
+
 
         </MapContainer>
 

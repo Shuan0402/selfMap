@@ -1,4 +1,6 @@
 // src/components/MarkerPopupCard.jsx
+import { useState, useEffect } from "react";
+
 import {
   Card,
   CardMedia,
@@ -8,41 +10,121 @@ import {
   IconButton,
   Chip,
   CircularProgress,
+  TextField,
+  Button,
 } from "@mui/material";
 
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import EditIcon from "@mui/icons-material/Edit";
 
 export default function MarkerPopupCard({
   marker,
+  currentUserUid,
   onCopyAddress,
   onDelete,
   isDeleting,
   onImageClick,
   onOpenInGoogleMaps,
-  currentUserUid,
+  // 評論
+  commentInput,
+  onCommentInputChange,
+  onAddComment,
+  // 備註
+  noteInput,
+  onNoteInputChange,
+  onSaveNote,
+  // 編輯標題 / 地址
+  onUpdateMeta,
 }) {
-  const createdAtText =
-    marker.createdAt?.toDate?.().toLocaleString() ?? "";
+    const isOwner =
+    (currentUserUid && !marker.createdBy) ||  // 有登入，而且資料沒 createdBy
+    (currentUserUid && marker.createdBy === currentUserUid);
 
-  const isOwner =
-    marker.createdBy && currentUserUid
-      ? marker.createdBy === currentUserUid
-      : false;
+
 
   const comments = Array.isArray(marker.comments)
     ? marker.comments
     : [];
 
+  const createdAtText =
+    marker.createdAt?.toDate?.().toLocaleString() ?? "";
+
+  // 編輯模式本地 state
+  const [editing, setEditing] = useState(false);
+  const [noteEditing, setNoteEditing] = useState(false);
+  const [localTitle, setLocalTitle] = useState(marker.title || "未命名地標");
+  const [localAddress, setLocalAddress] = useState(
+    marker.address || ""
+  );
+
+  // marker 改變時同步本地值
+  useEffect(() => {
+    setLocalTitle(marker.title || "未命名地標");
+    setLocalAddress(marker.address || "");
+  }, [marker.title, marker.address]);
+
+  useEffect(() => {
+    // 備註在外面被更新時，把編輯狀態關掉
+    setNoteEditing(false);
+    }, [marker.note]);
+
+
+  const handleEditClick = () => {
+    if (!isOwner) return;
+    setEditing((prev) => !prev);
+  };
+
+  const handleSaveMeta = () => {
+    if (!isOwner) {
+      setEditing(false);
+      return;
+    }
+    onUpdateMeta({
+      title: localTitle.trim() || "未命名地標",
+      address: localAddress.trim(),
+    });
+    setEditing(false);
+  };
+
+  // 取得目前使用者的評論（若有）
+    const userComment = comments.find(
+    (c) => c.authorUid === currentUserUid
+    );
+
+
   return (
     <Card sx={{ maxWidth: 320 }}>
-      {/* 標題 */}
-      <CardContent sx={{ pb: 1 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          {marker.title || "未命名地標"}
-        </Typography>
+      {/* 標題 + 編輯按鈕 */}
+      <CardContent sx={{ pb: 1, display: "flex", alignItems: "center" }}>
+        {editing ? (
+          <TextField
+            variant="standard"
+            fullWidth
+            label="標題"
+            value={localTitle}
+            onChange={(e) => setLocalTitle(e.target.value)}
+          />
+        ) : (
+          <Typography
+            variant="subtitle1"
+            sx={{ fontWeight: 600, flex: 1 }}
+          >
+            {marker.title || "未命名地標"}
+          </Typography>
+        )}
+
+        {isOwner && (
+          <IconButton
+            size="small"
+            onClick={editing ? handleSaveMeta : handleEditClick}
+            aria-label="編輯地標"
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+        )}
       </CardContent>
 
       {/* 照片 */}
@@ -57,37 +139,57 @@ export default function MarkerPopupCard({
         />
       )}
 
-      {/* 地址 + 複製 */}
+      {/* 地址 + 複製 + 圖釘（同一排，黑白灰） */}
       <CardContent
-        sx={{ display: "flex", alignItems: "center", gap: 1, pb: 1 }}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          pb: 1,
+        }}
       >
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ flex: 1, wordBreak: "break-word" }}
-        >
-          {marker.address}
-        </Typography>
+        {editing ? (
+          <TextField
+            variant="standard"
+            fullWidth
+            label="地址"
+            value={localAddress}
+            onChange={(e) => setLocalAddress(e.target.value)}
+          />
+        ) : (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ flex: 1, wordBreak: "break-word" }}
+          >
+            {marker.address}
+          </Typography>
+        )}
 
-        <IconButton
-          size="small"
-          onClick={() => onCopyAddress(marker.address)}
-          aria-label="複製地址"
-        >
-          <ContentCopyIcon fontSize="small" />
-        </IconButton>
+        {/* 複製按鈕 */}
+        {!editing && (
+          <>
+            <IconButton
+              size="small"
+              onClick={() => onCopyAddress(marker.address)}
+              aria-label="複製地址"
+            >
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
+
+            {/* 圖釘按鈕（黑白灰，開啟 Google Maps） */}
+            <IconButton
+              size="small"
+              onClick={() => onOpenInGoogleMaps(marker)}
+              aria-label="在 Google Maps 打開導航"
+            >
+              <LocationOnIcon fontSize="small" />
+            </IconButton>
+          </>
+        )}
       </CardContent>
 
-      {/* 備註（只有作者本人會看到） */}
-      {marker.note && isOwner && (
-        <CardContent sx={{ pt: 0, pb: 1 }}>
-          <Typography variant="caption" color="text.secondary">
-            備註（只有你自己看得到）：{marker.note}
-          </Typography>
-        </CardContent>
-      )}
-
-      {/* 時間 + Google Maps 導航 + 刪除 */}
+      {/* 上傳時間 + 刪除 */}
       <Box
         sx={{
           display: "flex",
@@ -98,28 +200,16 @@ export default function MarkerPopupCard({
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {/* 上傳時間，用時鐘 icon */}
           {createdAtText && (
             <Chip
-              icon={<AccessTimeIcon />}  // ⬅ 這裡是時鐘
+              icon={<AccessTimeIcon />}
               label={createdAtText}
               size="small"
               variant="outlined"
             />
           )}
-
-          {/* 導航按鈕：圖釘 icon 負責開 Google Maps */}
-          <IconButton
-            size="small"
-            color="primary"
-            aria-label="在 Google Maps 打開導航"
-            onClick={() => onOpenInGoogleMaps(marker)}
-          >
-            <LocationOnIcon />  {/* ⬅ 這顆就是你說的「原本圖釘」 */}
-          </IconButton>
         </Box>
 
-        {/* 刪除按鈕 */}
         <IconButton
           aria-label="刪除地標"
           onClick={onDelete}
@@ -135,7 +225,7 @@ export default function MarkerPopupCard({
         </IconButton>
       </Box>
 
-      {/* 評論區（目前只顯示，新增評論我們可以下一步再做） */}
+      {/* 評論區 */}
       <CardContent sx={{ pt: 0 }}>
         <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
           評論
@@ -152,14 +242,105 @@ export default function MarkerPopupCard({
             <Typography variant="body2">
               <strong>{c.authorName || "匿名"}</strong>：{c.text}
             </Typography>
-            {c.createdAt?.toDate && (
-              <Typography variant="caption" color="text.secondary">
-                {c.createdAt.toDate().toLocaleString()}
-              </Typography>
+            {c.createdAt && (
+            <Typography variant="caption" color="text.secondary">
+                {c.createdAt.toDate
+                ? c.createdAt.toDate().toLocaleString()           // Firestore Timestamp
+                : new Date(c.createdAt).toLocaleString()}
+            </Typography>
             )}
+
           </Box>
         ))}
+
+        {/* 新增評論輸入區域（所有人都可以） */}
+        <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
+          <TextField
+            variant="outlined"
+            size="small"
+            fullWidth
+            placeholder="留下你的評論..."
+            value={commentInput}
+            onChange={(e) => onCommentInputChange(e.target.value)}
+          />
+          <Button
+            variant="contained"
+            size="small"
+            onClick={onAddComment}
+            >
+            {userComment ? "更新" : "送出"}
+            </Button>
+
+        </Box>
       </CardContent>
+
+      {/* 備註輸入區域（只有作者可見） */}
+      {isOwner && (
+        <CardContent sx={{ pt: 0 }}>
+            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+            備註
+            </Typography>
+
+            {/* 如果正在編輯，就顯示 TextField */}
+            {noteEditing ? (
+            <>
+                <TextField
+                variant="outlined"
+                size="small"
+                fullWidth
+                multiline
+                minRows={2}
+                placeholder="請輸入備註"
+                value={noteInput}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => onNoteInputChange(e.target.value)}
+                />
+
+
+                {/* 只有內容有變更才顯示儲存按鈕 */}
+                { (noteInput ?? "") !== (marker.note || "") && (
+                <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
+                    <Button
+                    variant="text"
+                    size="small"
+                    onClick={(e) => {
+                        e.stopPropagation();        // ⬅ 這行很重要，阻止事件冒泡到地圖
+                        onSaveNote();               // 呼叫外面的儲存
+                        setNoteEditing(false);      // 只切回顯示模式，不關 popup
+                    }}
+                    >
+                    儲存備註
+                    </Button>
+                </Box>
+                )}
+
+            </>
+            ) : (
+            // 沒在編輯時，只顯示一行文字（可點擊進入編輯）
+            <Typography
+            variant="body2"
+            color={marker.note ? "text.primary" : "text.secondary"}
+            sx={{
+                whiteSpace: "pre-wrap",
+                cursor: "pointer",
+            }}
+            onClick={(e) => {
+                // 這行很重要：不要讓 click 冒泡到地圖上
+                e.stopPropagation();
+
+                setNoteEditing(true);
+                onNoteInputChange(marker.note || "");
+            }}
+            >
+            {marker.note && marker.note.trim()
+                ? marker.note
+                : "請輸入備註"}
+            </Typography>
+
+            )}
+        </CardContent>
+        )}
+
     </Card>
   );
 }
