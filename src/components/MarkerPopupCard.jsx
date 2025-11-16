@@ -13,6 +13,8 @@ import {
   TextField,
   Button,
 } from "@mui/material";
+import CheckIcon from "@mui/icons-material/Check";
+
 
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -96,7 +98,8 @@ export default function MarkerPopupCard({
 
 
   return (
-    <Card sx={{ maxWidth: 320 }}>
+    <Card sx={{ width: "100%" }}>
+
       {/* 標題 + 編輯按鈕 */}
       <CardContent sx={{ pb: 1, display: "flex", alignItems: "center" }}>
         {editing ? (
@@ -116,15 +119,47 @@ export default function MarkerPopupCard({
           </Typography>
         )}
 
+        {/* 編輯 / 儲存按鈕 */}
         {isOwner && (
-          <IconButton
+        <IconButton
             size="small"
-            onClick={editing ? handleSaveMeta : handleEditClick}
-            aria-label="編輯地標"
-          >
+            onClick={(e) => {
+            e.stopPropagation();
+
+            if (editing) {
+                handleSaveMeta();
+            } else {
+                setEditing(true);
+            }
+            }}
+            aria-label={editing ? "儲存地標" : "編輯地標"}
+        >
+            {editing ? (
+            <CheckIcon fontSize="small" />
+            ) : (
             <EditIcon fontSize="small" />
-          </IconButton>
+            )}
+        </IconButton>
         )}
+
+        {/* 刪除 marker 按鈕（搬到這裡） */}
+        <IconButton
+            aria-label="刪除地標"
+            onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+            }}
+            disabled={isDeleting}
+            size="small"
+            color="error"
+        >
+            {isDeleting ? (
+            <CircularProgress size={16} />
+            ) : (
+            <DeleteIcon />
+            )}
+        </IconButton>
+
       </CardContent>
 
       {/* 照片 */}
@@ -209,20 +244,6 @@ export default function MarkerPopupCard({
             />
           )}
         </Box>
-
-        <IconButton
-          aria-label="刪除地標"
-          onClick={onDelete}
-          disabled={isDeleting}
-          size="small"
-          color="error"
-        >
-          {isDeleting ? (
-            <CircularProgress size={16} />
-          ) : (
-            <DeleteIcon />
-          )}
-        </IconButton>
       </Box>
 
       {/* 評論區 */}
@@ -254,24 +275,28 @@ export default function MarkerPopupCard({
         ))}
 
         {/* 新增評論輸入區域（所有人都可以） */}
-        <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
-          <TextField
+        <Box sx={{ mt: 1, display: "flex", gap: 1, width: "100%" }}>
+        <TextField
             variant="outlined"
             size="small"
-            fullWidth
             placeholder="留下你的評論..."
             value={commentInput}
+            onClick={(e) => e.stopPropagation()}
             onChange={(e) => onCommentInputChange(e.target.value)}
-          />
-          <Button
+            sx={{ flexGrow: 1 }}    // 交給 flex 撐滿
+        />
+        <Button
             variant="contained"
             size="small"
-            onClick={onAddComment}
-            >
-            {userComment ? "更新" : "送出"}
-            </Button>
-
+            onClick={(e) => {
+            e.stopPropagation();
+            onAddComment();
+            }}
+        >
+            送出
+        </Button>
         </Box>
+
       </CardContent>
 
       {/* 備註輸入區域（只有作者可見） */}

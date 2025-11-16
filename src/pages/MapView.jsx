@@ -416,10 +416,12 @@ export default function MapView({ themeMode, toggleTheme }) {
               }}
             >
               <Popup
-              open={openedPopupId === m.id}
-              closeOnClick={false}   // 點地圖不要自動關
-              autoClose={false}      // 開另一個 popup 時也不要自動關（可依喜好）
-            >
+                open={openedPopupId === m.id}
+                minWidth={320}
+                maxWidth={320}
+                closeOnClick={false}
+                autoClose={false}
+              >
                 <MarkerPopupCard
                   marker={m}
                   currentUserUid={auth.currentUser?.uid || null}
@@ -434,6 +436,7 @@ export default function MapView({ themeMode, toggleTheme }) {
                     handleCommentInputChange(m.id, value)
                   }
                   onAddComment={() => handleAddComment(m)}
+                  onDeleteComment={(comment) => handleDeleteComment(m, comment)}
                   // 備註
                   noteInput={
                     noteInputs[m.id] !== undefined
@@ -445,12 +448,12 @@ export default function MapView({ themeMode, toggleTheme }) {
                   }
                   onSaveNote={async () => {
                     await handleSaveNote(m.id);
-                    // 這裡不要關閉 Popup，只是更新 display 模式
                   }}
                   // 標題地址編輯
                   onUpdateMeta={(data) => handleUpdateMarkerMeta(m.id, data)}
                 />
               </Popup>
+
             </Marker>
           ))}
 
