@@ -52,7 +52,8 @@ export default function ForgotPasswordPage({ themeMode, toggleTheme }) {
     try {
       await sendPasswordResetEmail(auth, email.trim(), {
         // 重設完按 Continue 之後要回哪一頁（依你實際路由調整）
-        url: `${window.location.origin}/login`,
+        url: "https://shuan0402.github.io/selfMap/#/login",
+
         handleCodeInApp: false,
       });
 
