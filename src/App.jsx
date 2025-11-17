@@ -11,7 +11,7 @@ import MapsPage from "./pages/MapsPage";
 import MapView from "./pages/MapView";
 import UserProfilePage from "./pages/UserProfilePage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
+import LandingPage from "./pages/LandingPage";
 
 function AppWrapper({ children }) {
   const theme = useTheme();
@@ -55,7 +55,7 @@ export default function App() {
       <AppWrapper>
         <HashRouter>
           <Routes>
-            <Route
+            {/* <Route
               path="/"
               element={
                 user ? (
@@ -71,6 +71,10 @@ export default function App() {
                   />
                 )
               }
+            /> */}
+            <Route
+              path="/"
+              element={<LandingPage themeMode={themeMode} toggleTheme={toggleTheme} />}
             />
 
             <Route

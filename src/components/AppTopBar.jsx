@@ -43,7 +43,7 @@ export default function AppTopBar({
   };
 
   const handleGoHome = () => {
-    navigate("/maps"); // 首頁 = 地圖列表
+    navigate("/"); // 首頁 = 地圖列表
   };
 
   return (
