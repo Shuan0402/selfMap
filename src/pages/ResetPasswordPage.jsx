@@ -15,7 +15,7 @@ import {
   IconButton,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-
+import AppTopBar from "../components/AppTopBar";
 import { styled } from "@mui/material/styles";
 
 import { auth } from "../firebase";
@@ -91,24 +91,14 @@ export default function ResetPasswordPage({ themeMode, toggleTheme }) {
 
   return (
     <>
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar>
-          <IconButton
-            edge="start"
-            sx={{ mr: 1 }}
-            onClick={() => navigate("/")}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            重設密碼
-          </Typography>
-
-          <ThemeToggle theme={themeMode} toggleTheme={toggleTheme} />
-          <AboutDialog />
-        </Toolbar>
-      </AppBar>
+      <AppTopBar
+        variant="back" // ⬅️ 回上一頁 + SelfMap
+        themeMode={themeMode}
+        toggleTheme={toggleTheme}
+        userName={auth.currentUser?.displayName || "未命名使用者"}
+        onLogout={handleLogout}
+        onBack={handleBack}   // 你原本的 handleBack: navigate("/maps")
+      />
 
       <Container maxWidth="sm">
         <ResetPaper elevation={3}>

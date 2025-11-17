@@ -10,19 +10,14 @@ import {
   Button,
   Box,
   Alert,
-  AppBar,
-  Toolbar,
-  IconButton,
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 import { styled } from "@mui/material/styles";
 
 import { auth } from "../firebase";
-import { sendPasswordResetEmail } from "firebase/auth";
+import { sendPasswordResetEmail, signOut } from "firebase/auth";
 
-import ThemeToggle from "../components/ThemeToggle";
-import AboutDialog from "../components/About";
+import AppTopBar from "../components/AppTopBar";
 
 const ForgotPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -32,68 +27,74 @@ const ForgotPaper = styled(Paper)(({ theme }) => ({
 
 export default function ForgotPasswordPage({ themeMode, toggleTheme }) {
   const navigate = useNavigate();
-  const user = auth.currentUser;
 
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [email, setEmail] = useState("");
 
+  // 如果目前有登入，就幫忙帶入 email（但仍允許修改）
   useEffect(() => {
-    // 如果沒登入，就導回登入頁（或首頁）
-    if (!user) {
-      navigate("/");
-      return;
+    const user = auth.currentUser;
+    if (user?.email) {
+      setEmail(user.email);
     }
-
-    setEmail(user.email || "");
-  }, [user, navigate]);
+  }, []);
 
   const handleSendReset = async () => {
     setMessage("");
 
-    const user = auth.currentUser;
-    if (!user || !user.email) {
-        setMessage("目前沒有登入使用者，無法重設密碼。");
-        return;
+    if (!email.trim()) {
+      setMessage("請輸入電子郵件。");
+      return;
     }
 
     setSending(true);
     try {
-        await sendPasswordResetEmail(auth, user.email, {
-        // 這裡只決定 Firebase 重設完按 Continue 之後要回哪一頁
-        url: `${window.location.origin}/selfMap/#/login`,
-        handleCodeInApp: false,   // 或乾脆不加這個設定
-        });
+      await sendPasswordResetEmail(auth, email.trim(), {
+        // 重設完按 Continue 之後要回哪一頁（依你實際路由調整）
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: false,
+      });
 
-        setMessage("已寄出重設密碼連結，請到信箱收信。");
+      setMessage("已寄出重設密碼連結，請到信箱收信。");
     } catch (err) {
-        console.error(err);
-        setMessage("寄送重設信件失敗：" + err.message);
+      console.error(err);
+      setMessage("寄送重設信件失敗：" + err.message);
     } finally {
-        setSending(false);
+      setSending(false);
     }
-    };
+  };
+
+  const handleBack = () => {
+    // 回到登入頁
+    navigate("/login"); // 如果你的 AuthPage 是 "/"，就改成 "/"
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate("/login");
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
-    <>
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar>
-          <IconButton
-            edge="start"
-            sx={{ mr: 1 }}
-            onClick={() => navigate(-1)}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            忘記密碼
-          </Typography>
-
-          <ThemeToggle theme={themeMode} toggleTheme={toggleTheme} />
-          <AboutDialog />
-        </Toolbar>
-      </AppBar>
+    <Box
+      sx={{
+        flexGrow: 1,
+        minHeight: "100vh",
+        bgcolor: (theme) => theme.palette.background.default,
+      }}
+    >
+      <AppTopBar
+        variant="back"
+        themeMode={themeMode}
+        toggleTheme={toggleTheme}
+        userName={auth.currentUser?.displayName || "訪客"}
+        onLogout={handleLogout}
+        onBack={handleBack}
+      />
 
       <Container maxWidth="sm">
         <ForgotPaper elevation={3}>
@@ -102,16 +103,16 @@ export default function ForgotPasswordPage({ themeMode, toggleTheme }) {
           </Typography>
 
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            我們會寄送一封「重設密碼」連結到你的帳號信箱。
+            請輸入你的帳號電子郵件，我們會寄送一封「重設密碼」連結。
           </Typography>
 
-          {/* ✅ 信箱僅顯示、不允許修改 */}
+          {/* ✅ 改成可以輸入的 email 欄位 */}
           <TextField
             fullWidth
             type="email"
             label="電子郵件"
             value={email}
-            disabled
+            onChange={(e) => setEmail(e.target.value)}
             sx={{ mb: 2 }}
             helperText="重設密碼連結將寄送至此信箱"
           />
@@ -136,6 +137,6 @@ export default function ForgotPasswordPage({ themeMode, toggleTheme }) {
           )}
         </ForgotPaper>
       </Container>
-    </>
+    </Box>
   );
 }

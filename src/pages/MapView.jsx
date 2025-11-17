@@ -39,7 +39,6 @@ import MuiAlert from "@mui/material/Alert";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 
-import MapToolbar from "../components/MapToolbar";
 import MarkerPopupCard from "../components/MarkerPopupCard";
 import AddMarkerPhotoDialog from "../components/AddMarkerPhotoDialog";
 import FullImageDialog from "../components/FullImageDialog";

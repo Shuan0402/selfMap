@@ -1,3 +1,4 @@
+// src/pages/AuthPage.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
@@ -95,6 +96,11 @@ export default function AuthPage({ themeMode, toggleTheme }) {
     }
   }
 
+  // 🔗 忘記密碼導向
+  const handleForgotPassword = () => {
+    navigate("/forgot-password"); // 這裡路徑要和你的 Router 設定一致
+  };
+
   return (
     <Container component="main" maxWidth="sm">
       <Box
@@ -175,6 +181,25 @@ export default function AuthPage({ themeMode, toggleTheme }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+
+            {/* ✅ 只有在「登入」模式時顯示「忘記密碼？」 */}
+            {mode === "signin" && (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  mt: 1,
+                }}
+              >
+                <Button
+                  size="small"
+                  color="primary"
+                  onClick={handleForgotPassword}
+                >
+                  忘記密碼？
+                </Button>
+              </Box>
+            )}
 
             <SubmitButton
               type="submit"
