@@ -18,6 +18,7 @@ import { auth } from "../firebase";
 import { sendPasswordResetEmail, signOut } from "firebase/auth";
 
 import AppTopBar from "../components/AppTopBar";
+import LandingPageBackground from "../components/LandingPageBackground";
 
 const ForgotPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -82,12 +83,21 @@ export default function ForgotPasswordPage({ themeMode, toggleTheme }) {
 
   return (
     <Box
-      sx={{
-        flexGrow: 1,
+      sx={(theme) => ({
         minHeight: "100vh",
-        bgcolor: (theme) => theme.palette.background.default,
-      }}
+        position: "relative",
+        overflow: "hidden",
+        bgcolor:
+          theme.palette.mode === "dark"
+            ? theme.palette.background.default
+            : theme.palette.grey[50],
+        color: "text.primary",
+        display: "flex",
+        flexDirection: "column",
+      })}
     >
+      <LandingPageBackground />
+      
       <AppTopBar
         variant="back"
         themeMode={themeMode}

@@ -1,4 +1,3 @@
-// src/pages/AuthPage.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
@@ -112,7 +111,7 @@ export default function AuthPage({ themeMode, toggleTheme }) {
           alignItems: "center",
         }}
       >
-              {/* 背景圖層（獨立出來的背景組件） */}
+        {/* 背景圖層（獨立出來的背景組件） */}
         <LandingPageBackground />
         <AuthPaper elevation={6}>
           <Box

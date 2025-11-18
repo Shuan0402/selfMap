@@ -10,10 +10,10 @@ import {
   Button,
   Box,
   Alert,
+  IconButton,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
-import IconButton from "@mui/material/IconButton";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
 
@@ -30,7 +30,7 @@ import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 
 import AppTopBar from "../components/AppTopBar";
 import { logActivity } from "../utils/activity";
-
+import LandingPageBackground from "../components/LandingPageBackground"; // 背景組件
 
 const ProfilePaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -199,19 +199,40 @@ export default function UserProfilePage({ themeMode, toggleTheme }) {
   const safeName = displayName || "未命名使用者";
 
   return (
-    <>
-      {/* 共用頂部 Bar */}
-      <AppTopBar
-        variant="back" // ⬅️ 左上角：返回 + SelfMap
-        themeMode={themeMode}
-        toggleTheme={toggleTheme}
-        userName={user?.displayName || "未命名使用者"}
-        onLogout={handleLogout}
-        onBack={handleBack} // 回地圖列表
-      />
+    <Box
+      sx={(theme) => ({
+        minHeight: "100vh",
+        position: "relative",
+        overflow: "hidden",
+        bgcolor:
+          theme.palette.mode === "dark"
+            ? theme.palette.background.default
+            : theme.palette.grey[50],
+        color: "text.primary",
+        display: "flex",
+        flexDirection: "column",
+      })}
+    >
+      {/* 背景圖層 */}
+      <LandingPageBackground />
+
+      {/* 上方 Bar：在背景上層 */}
+      <Box sx={{ position: "relative", zIndex: 2 }}>
+        <AppTopBar
+          variant="back" // 左上角：返回 + SelfMap
+          themeMode={themeMode}
+          toggleTheme={toggleTheme}
+          userName={user?.displayName || "未命名使用者"}
+          onLogout={handleLogout}
+          onBack={handleBack}
+        />
+      </Box>
 
       {/* 主要內容 */}
-      <Container maxWidth="sm">
+      <Container
+        maxWidth="sm"
+        sx={{ py: 4, position: "relative", zIndex: 2 }}
+      >
         <ProfilePaper elevation={3}>
           {/* 標題區 */}
           <Box
@@ -465,6 +486,6 @@ export default function UserProfilePage({ themeMode, toggleTheme }) {
           </Box>
         </ProfilePaper>
       </Container>
-    </>
+    </Box>
   );
 }
