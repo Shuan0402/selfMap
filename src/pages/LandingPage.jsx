@@ -18,6 +18,7 @@ import GitHubIcon from "@mui/icons-material/GitHub";
 import AppTopBar from "../components/AppTopBar";
 import { auth } from "../firebase";
 import { signOut } from "firebase/auth";
+import LandingPageBackground from "../components/LandingPageBackground";  // 新的背景組件
 
 // 中間那塊主內容卡片
 const MainPaper = styled(Paper)(({ theme }) => ({
@@ -40,14 +41,14 @@ export default function LandingPage({ themeMode, toggleTheme }) {
     if (user) {
       navigate("/maps");
     } else {
-      navigate("/login"); // 如果你的登入頁是 "/"，這裡改成 navigate("/");
+      navigate("/login"); // 如果你的登入頁是 "/"，這裡改成 navigate("/")
     }
   };
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      navigate("/login"); // 如果 AuthPage 在 "/"，就改為 navigate("/");
+      navigate("/login"); // 如果 AuthPage 在 "/"，就改為 navigate("/")
     } catch (err) {
       console.error("登出失敗：", err);
     }
@@ -72,89 +73,8 @@ export default function LandingPage({ themeMode, toggleTheme }) {
         flexDirection: "column",
       })}
     >
-      {/* 背景圖層（在最底層） */}
-      <Box
-        sx={{
-          position: "absolute",
-          inset: 0,
-          zIndex: 0,
-          pointerEvents: "none",
-        }}
-      >
-        {/* 大圓形 1 */}
-        <Box
-          sx={(theme) => {
-            const isDark = theme.palette.mode === "dark";
-            return {
-              position: "absolute",
-              width: 520,
-              height: 520,
-              borderRadius: "50%",
-              top: -160,
-              right: -100,
-              // 明：藍，暗：白
-              backgroundColor: isDark ? "#F9FAFB" : theme.palette.primary.main,
-              opacity: isDark ? 0.35 : 0.45,
-            };
-          }}
-        />
-
-        {/* 大圓形 2 */}
-        <Box
-          sx={(theme) => {
-            const isDark = theme.palette.mode === "dark";
-            return {
-              position: "absolute",
-              width: 420,
-              height: 420,
-              borderRadius: "50%",
-              bottom: -160,
-              left: -80,
-              // 明：灰，暗：灰
-              backgroundColor: isDark ? "#64748B" : theme.palette.grey[300],
-              opacity: isDark ? 0.35 : 0.4,
-            };
-          }}
-        />
-
-        {/* 矩形 1 */}
-        <Box
-          sx={(theme) => {
-            const isDark = theme.palette.mode === "dark";
-            return {
-              position: "absolute",
-              width: 320,
-              height: 160,
-              borderRadius: 40,
-              top: "42%",
-              left: "6%",
-              transform: "rotate(-8deg)",
-              // 明：淺藍，暗：白
-              backgroundColor: isDark ? "#FFFFFF" : theme.palette.primary.light,
-              opacity: isDark ? 0.3 : 0.35,
-            };
-          }}
-        />
-
-        {/* 矩形 2 */}
-        <Box
-          sx={(theme) => {
-            const isDark = theme.palette.mode === "dark";
-            return {
-              position: "absolute",
-              width: 300,
-              height: 150,
-              borderRadius: 40,
-              bottom: "18%",
-              right: "5%",
-              transform: "rotate(6deg)",
-              // 明：灰，暗：較深灰
-              backgroundColor: isDark ? "#475569" : theme.palette.grey[200],
-              opacity: isDark ? 0.25 : 0.3,
-            };
-          }}
-        />
-      </Box>
+      {/* 背景圖層（獨立出來的背景組件） */}
+      <LandingPageBackground />
 
       {/* 上方 Bar：在背景上層 */}
       <Box sx={{ position: "relative", zIndex: 2 }}>
@@ -272,14 +192,15 @@ export default function LandingPage({ themeMode, toggleTheme }) {
 
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    功能 3｜備註與評論
+                    功能 3｜最新消息與訂閱
                   </Typography>
                   <Typography
                     variant="body2"
                     color="text.secondary"
                     sx={{ lineHeight: 1.8 }}
                   >
-                    留言備註，記錄當時的心情與回憶，並觀看朋友們的評論，增添互動樂趣。
+                    訂閱你在意的地圖，有新的地標時會在「最新消息」與
+                    Email 中收到通知。
                   </Typography>
                 </Box>
               </Stack>

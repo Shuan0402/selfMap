@@ -1,7 +1,28 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { auth, db } from "../firebase";
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";  // 加入 Link 的導入
+import {
+  Box,
+  Container,
+  Paper,
+  Typography,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemButton,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  CircularProgress,
+  Alert,
+} from "@mui/material";
+import { Add as AddIcon, MoreVert as MoreVertIcon } from "@mui/icons-material";
 import { signOut } from "firebase/auth";
+import { auth, db } from "../firebase";
 import {
   collection,
   addDoc,
@@ -11,46 +32,10 @@ import {
   onSnapshot,
   serverTimestamp,
   deleteDoc,
-  doc,
-  updateDoc,
-  getDocs, 
-  writeBatch,
 } from "firebase/firestore";
-import {
-  Container,
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  TextField,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  Box,
-  Paper,
-  CircularProgress,
-  Alert,
-} from "@mui/material";
-import {
-  Add as AddIcon,
-  Logout as LogoutIcon,
-  Map as MapIcon,
-  MoreVert as MoreVertIcon,
-} from "@mui/icons-material";
-
 import MapMoreMenu from "../components/MapMoreMenu";
-import AboutDialog from "../components/About";
-import { renameMap, deleteMap, shareMap, clearMarkers } from "../utils/mapActions";
-import ThemeToggle from "../components/ThemeToggle";
-import RecentActivityButton from "../components/RecentActivityButton";
 import AppTopBar from "../components/AppTopBar";
-
+import LandingPageBackground from "../components/LandingPageBackground";  // 背景組件
 
 export default function MapsPage({ user, themeMode, toggleTheme }) {
   const [maps, setMaps] = useState([]);
@@ -58,14 +43,10 @@ export default function MapsPage({ user, themeMode, toggleTheme }) {
   const [creating, setCreating] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [error, setError] = useState("");
-
-  // 三點選單控制
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [selectedMap, setSelectedMap] = useState(null);
 
   const navigate = useNavigate();
-  const userDisplayName =
-    user?.displayName || "未命名使用者";
 
   useEffect(() => {
     if (!user) return;
@@ -79,6 +60,23 @@ export default function MapsPage({ user, themeMode, toggleTheme }) {
     );
     return () => unsub();
   }, [user]);
+
+  const handleStart = () => {
+    if (user) {
+      navigate("/maps");
+    } else {
+      navigate("/login");
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate("/login");
+    } catch (err) {
+      console.error("登出失敗：", err);
+    }
+  };
 
   // 建立新地圖
   async function createMap() {
@@ -95,7 +93,6 @@ export default function MapsPage({ user, themeMode, toggleTheme }) {
         ownerUid: user.uid,
         createdAt: serverTimestamp(),
       });
-
       const newMap = {
         id: docRef.id,
         title: title.trim(),
@@ -149,32 +146,38 @@ export default function MapsPage({ user, themeMode, toggleTheme }) {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/"); // 不要加 /selfMap
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   return (
-    <Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: (theme) => theme.palette.background.default, }}>
+    <Box
+      sx={(theme) => ({
+        minHeight: "100vh",
+        position: "relative",
+        overflow: "hidden",
+        bgcolor:
+          theme.palette.mode === "dark"
+            ? theme.palette.background.default
+            : theme.palette.grey[50],
+        color: "text.primary",
+        display: "flex",
+        flexDirection: "column",
+      })}
+    >
+      <LandingPageBackground />
+
       {/* AppBar */}
-      <AppTopBar
-        variant="maps" // 🗺️ MapIcon + SelfMap
-        themeMode={themeMode}
-        toggleTheme={toggleTheme}
-        userName={user?.displayName || "未命名使用者"}
-        onLogout={handleLogout}
-      />
+      <Box sx={{ position: "relative", zIndex: 2 }}>
+        <AppTopBar
+          variant="maps"
+          themeMode={themeMode}
+          toggleTheme={toggleTheme}
+          userName={user?.displayName || "未命名使用者"}
+          onLogout={handleLogout}
+        />
+      </Box>
 
       {/* 主內容 */}
-      <Container maxWidth="md" sx={{ py: 4 }}>
+      <Container maxWidth="md" sx={{ py: 4, position: "relative", zIndex: 2 }}>
         <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-          <Box
-            sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}
-          >
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
             <Typography variant="h5" component="h2">
               地圖列表
             </Typography>
@@ -193,13 +196,12 @@ export default function MapsPage({ user, themeMode, toggleTheme }) {
 
           {maps.length === 0 ? (
             <Box sx={{ textAlign: "center", py: 4 }}>
-              <MapIcon sx={{ fontSize: 60, color: "grey.400", mb: 2 }} />
               <Typography variant="body1" color="text.secondary">
                 還沒有地圖 — 建立一個吧！
               </Typography>
             </Box>
           ) : (
-            <List sx={{ bgcolor: "background.paper" }}>
+            <List>
               {maps.map((map) => (
                 <ListItem
                   key={map.id}
@@ -214,11 +216,7 @@ export default function MapsPage({ user, themeMode, toggleTheme }) {
                   <ListItemButton component={Link} to={`/map/${map.id}`}>
                     <ListItemText
                       primary={map.title || "(未命名地圖)"}
-                      secondary={`創建時間: ${
-                        map.createdAt?.toDate
-                          ? map.createdAt.toDate().toLocaleString()
-                          : new Date(map.createdAt).toLocaleString() || "未知"
-                      }`}
+                      secondary={`創建時間: ${new Date(map.createdAt).toLocaleString()}`}
                     />
                   </ListItemButton>
                 </ListItem>
@@ -229,37 +227,20 @@ export default function MapsPage({ user, themeMode, toggleTheme }) {
       </Container>
 
       {/* 新增地圖對話框 */}
-      <Dialog open={openDialog} onClose={() => !creating && setOpenDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog open={openDialog} onClose={() => !creating && setOpenDialog(false)}>
         <DialogTitle>建立新地圖</DialogTitle>
         <DialogContent>
           <TextField
-            autoFocus
-            margin="dense"
             label="地圖名稱"
-            type="text"
-            fullWidth
-            variant="outlined"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                createMap();
-              }
-            }}
+            fullWidth
             disabled={creating}
-            sx={{ mt: 2 }}
           />
-          {error && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {error}
-            </Alert>
-          )}
+          {error && <Alert severity="error">{error}</Alert>}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)} disabled={creating}>
-            取消
-          </Button>
+          <Button onClick={() => setOpenDialog(false)} disabled={creating}>取消</Button>
           <Button
             onClick={createMap}
             disabled={creating || !title.trim()}

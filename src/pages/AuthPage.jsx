@@ -22,6 +22,7 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import ThemeToggle from "../components/ThemeToggle";
+import LandingPageBackground from "../components/LandingPageBackground";  // 背景組件
 
 // 樣式組件
 const AuthPaper = styled(Paper)(({ theme }) => ({
@@ -111,6 +112,8 @@ export default function AuthPage({ themeMode, toggleTheme }) {
           alignItems: "center",
         }}
       >
+              {/* 背景圖層（獨立出來的背景組件） */}
+        <LandingPageBackground />
         <AuthPaper elevation={6}>
           <Box
             sx={{
