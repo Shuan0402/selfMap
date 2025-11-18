@@ -159,7 +159,7 @@ export default function LandingPage({ themeMode, toggleTheme }) {
       {/* 上方 Bar：在背景上層 */}
       <Box sx={{ position: "relative", zIndex: 2 }}>
         <AppTopBar
-          variant="landing"
+          variant="home"
           themeMode={themeMode}
           toggleTheme={toggleTheme}
           userName={auth.currentUser?.displayName || " "}

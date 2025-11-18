@@ -50,7 +50,7 @@ export default function AppTopBar({
     <AppBar position="static" elevation={1}>
       <Toolbar>
         {/* 左側：依 variant 顯示 */}
-        {variant === "maps" ? (
+        {variant === "maps" || variant === "home" ? (
           <>
             <MapIcon sx={{ mr: 1 }} />
             <Typography
