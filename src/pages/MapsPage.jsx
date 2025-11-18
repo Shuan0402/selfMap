@@ -216,7 +216,13 @@ export default function MapsPage({ user, themeMode, toggleTheme }) {
                   <ListItemButton component={Link} to={`/map/${map.id}`}>
                     <ListItemText
                       primary={map.title || "(未命名地圖)"}
-                      secondary={`創建時間: ${new Date(map.createdAt).toLocaleString()}`}
+                      secondary={`創建時間: ${
+                        map.createdAt?.toDate
+                          ? map.createdAt.toDate().toLocaleString()        // Firestore Timestamp
+                          : map.createdAt instanceof Date
+                          ? map.createdAt.toLocaleString()                // 原生 Date（你在 createMap 裡 new Date() 的那個）
+                          : "未知"
+                      }`}
                     />
                   </ListItemButton>
                 </ListItem>
