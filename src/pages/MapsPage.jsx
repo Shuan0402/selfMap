@@ -35,7 +35,9 @@ import {
 } from "firebase/firestore";
 import MapMoreMenu from "../components/MapMoreMenu";
 import AppTopBar from "../components/AppTopBar";
-import LandingPageBackground from "../components/LandingPageBackground";  // 背景組件
+import LandingPageBackground from "../components/LandingPageBackground"; 
+import { renameMap, deleteMap, shareMap, clearMarkers } from "../utils/mapActions";
+
 
 export default function MapsPage({ user, themeMode, toggleTheme }) {
   const [maps, setMaps] = useState([]);
@@ -121,30 +123,49 @@ export default function MapsPage({ user, themeMode, toggleTheme }) {
     setMenuAnchorEl(null);
   };
 
-  // 提供給 MapMoreMenu 的動作
+    // 提供給 MapMoreMenu 的動作
   const handleRenameMap = async (id, newName) => {
-    await renameMap(id, newName);
-    setMaps((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, title: newName } : m))
-    );
+    try {
+      await renameMap(id, newName);
+      // 同步更新本地 state
+      setMaps((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, title: newName } : m))
+      );
+    } catch (err) {
+      console.error("重新命名地圖失敗：", err);
+    }
   };
 
   const handleDeleteMap = async (id) => {
-    await deleteMap(id);
-    setMaps((prev) => prev.filter((m) => m.id !== id));
+    try {
+      await deleteMap(id);
+      // 從本地列表移除
+      setMaps((prev) => prev.filter((m) => m.id !== id));
+    } catch (err) {
+      console.error("刪除地圖失敗：", err);
+    }
   };
 
   const handleShareMap = async (id) => {
-    await shareMap(id);
+    try {
+      await shareMap(id);
+      // 這裡不需要改 state，只是呼叫分享功能
+    } catch (err) {
+      console.error("分享地圖失敗：", err);
+    }
   };
 
   const handleClearMarkers = async (mapId) => {
     try {
       await clearMarkers(mapId);
+      // 如果你有額外要在清空標記後更新畫面，可以在這裡加
     } catch (err) {
-      console.error("handleClearMarkers error:", err);
+      console.error("清空地標失敗：", err);
     }
   };
+
+
+  
 
   return (
     <Box
